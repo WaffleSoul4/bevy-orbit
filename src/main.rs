@@ -1,12 +1,10 @@
-use bevy::{math::{bounding::{BoundingCircle, BoundingVolume}, VectorSpace}, prelude::*};
+use avian2d::{math::*, prelude::*};
+use bevy::{math::bounding::BoundingCircle, prelude::*};
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 
 #[derive(Component, Debug)]
 struct Mass(f32);
-
-#[derive(Component, Debug)]
-struct Velocity(Vec2);
 
 #[derive(Component)]
 struct Gravitable;
@@ -23,17 +21,20 @@ struct ArrowGizmos;
 #[derive(Resource)]
 struct MousePos(Vec2);
 
-#[derive(Component, Clone, Debug)]
-struct CircleCollider(BoundingCircle);
-
 fn main() {
     App::new()
         .init_gizmo_group::<ArrowGizmos>()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            (update_bounding_circles, apply_velocity, apply_gravity, mouse_tracker_sys, draw_arrows, mouse_input, detect_collisions, keyboard_input),
+            (
+                apply_gravity,
+                mouse_tracker_sys,
+                draw_arrows,
+                mouse_input,
+                keyboard_input,
+            ),
         )
         .run();
 }
@@ -54,7 +55,8 @@ fn setup(
         MeshMaterial2d(materials.add(Color::oklab(1.0, 0.3, 0.7))),
         Gravitator,
         Mass(20.0),
-        CircleCollider(BoundingCircle::new(Vec2::ZERO, 10.0))
+        Collider::circle(10.0 as Scalar),
+        RigidBody::Dynamic,
     ));
 
     commands.spawn((
@@ -63,8 +65,9 @@ fn setup(
         MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
         Mass(10.0),
         Gravitable,
-        Velocity(Vec2::new(0.0, -100.0)),
-        CircleCollider(BoundingCircle::new(Vec2::new(100.0, 0.0), 10.0)),
+        LinearVelocity(Vec2::new(0.0, -50.0)),
+        Collider::circle(10.0 as Scalar),
+        RigidBody::Dynamic,
     ));
 
     commands.spawn((
@@ -74,21 +77,13 @@ fn setup(
         Mass(10.0),
         Gravitable,
         Gravitator,
-        Velocity(Vec2::new(0.0, -100.0)),
-        CircleCollider(BoundingCircle::new(Vec2::new(-100.0, 50.0), 10.0)),
+        LinearVelocity(Vec2::new(0.0, 100.0)),
+        Collider::circle(10.0 as Scalar),
+        RigidBody::Dynamic,
     ));
 }
 
-fn apply_velocity(mut query: Query<(&mut Transform, &Velocity)>, time: Res<Time>) {
-    let _ = query.iter_mut().for_each(|(mut transform, velocity)| {
-        transform.translation += to_vec3(&velocity.0) * time.delta_secs()
-    });
-}
-
-fn keyboard_input(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut show_arrows: ResMut<ShowArrows>,
-) {
+fn keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowArrows>) {
     if keys.just_pressed(KeyCode::KeyQ) {
         show_arrows.0 = !show_arrows.0
     }
@@ -96,7 +91,7 @@ fn keyboard_input(
 
 fn apply_gravity(
     gravitator: Query<(&Mass, &Transform), With<Gravitator>>,
-    mut gravitee: Query<(&Mass, &Transform, &mut Velocity)>,
+    mut gravitee: Query<(&Mass, &Transform, &mut LinearVelocity)>,
     time: Res<Time>,
 ) {
     for (mass, transform) in &gravitator {
@@ -120,10 +115,6 @@ fn apply_gravity(
     }
 }
 
-fn to_vec3(vec: &Vec2) -> Vec3 {
-    Vec3::new(vec.x, vec.y, 0.0)
-} 
-
 fn mouse_tracker_sys(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -134,20 +125,10 @@ fn mouse_tracker_sys(
 
     if let Some(world_position) = window
         .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok()) {
-            //eprintln!("Mouse coords are: {}, {}", world_position.x, world_position.y)
-            *mouse_pos = MousePos(Vec2::new(world_position.x, world_position.y))
-        }
-}
-
-fn update_bounding_circles(
-    mut query: Query<(&mut CircleCollider, &Transform)>
-) {
-    for (mut collider, transform) in &mut query {
-        collider.0 = BoundingCircle {
-            center: transform.translation.xy(),
-            ..collider.0
-        }
+        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
+    {
+        //eprintln!("Mouse coords are: {}, {}", world_position.x, world_position.y)
+        *mouse_pos = MousePos(Vec2::new(world_position.x, world_position.y))
     }
 }
 
@@ -166,6 +147,8 @@ fn mouse_input(
         create_stationary(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
     }
 }
+
+
 
 fn create_gravitable(
     commands: &mut Commands,
@@ -187,8 +170,9 @@ fn create_gravitable(
         Mass(10.0),
         Gravitable,
         Gravitator,
-        Velocity(Vec2::new(0.0, 0.0)),
-        CircleCollider(BoundingCircle::new( pos, 10.0))
+        LinearVelocity(Vec2::new(0.0, 0.0)),
+        Collider::circle(10.0 as Scalar),
+        RigidBody::Dynamic,
     ));
 }
 
@@ -211,39 +195,15 @@ fn create_stationary(
         MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
         Mass(10.0),
         Gravitator,
-        CircleCollider(BoundingCircle::new( pos, 10.0))
+        Collider::circle(10.0 as Scalar),
+        RigidBody::Static,
     ));
-}
-
-fn detect_collisions(
-    mut circle_one: Query<(&Transform, Option<&mut Velocity>, &CircleCollider)>,
-) {
-    let mut others = vec![];
-
-    for (transform, _, collider) in circle_one.iter() {
-        others.push((transform.clone(), collider.clone()))
-    }
-
-    for (pos_one, mut velocity_one, collider_one) in &mut circle_one {
-        for (pos_two, collider_two) in others.iter() {
-
-            let are_colliding = pos_two.translation.distance(pos_one.translation) < collider_two.0.radius() + collider_one.0.radius();
-
-            if pos_one != pos_two && are_colliding {
-                let normal = (pos_one.translation.xy() - pos_two.translation.xy()).normalize();
-
-                if let Some(ref mut velo) = velocity_one {
-                    velo.0 = velo.0.reflect(normal) * 1.0
-                }
-            }
-        }
-    }
 }
 
 fn draw_arrows(
     show_arrows: Res<ShowArrows>,
     mut gizmos: Gizmos,
-    query: Query<(&Velocity, &Transform)>,
+    query: Query<(&LinearVelocity, &Transform)>,
 ) {
     if show_arrows.0 {
         query.iter().for_each(|(velocity, transform)| {
