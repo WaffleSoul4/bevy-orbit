@@ -1,5 +1,5 @@
 use avian2d::{math::*, prelude::*};
-use bevy::{math::bounding::BoundingCircle, prelude::*};
+use bevy::prelude::*;
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 
@@ -21,6 +21,9 @@ struct ArrowGizmos;
 #[derive(Resource)]
 struct MousePos(Vec2);
 
+#[derive(Component)]
+struct Selected;
+
 fn main() {
     App::new()
         .init_gizmo_group::<ArrowGizmos>()
@@ -31,9 +34,12 @@ fn main() {
             (
                 apply_gravity,
                 mouse_tracker_sys,
-                draw_arrows,
+                draw_velocity_arrows,
                 mouse_input,
                 keyboard_input,
+                release_object,
+                draw_selected_velocity_arrows,
+                entity_clear,
             ),
         )
         .run();
@@ -48,6 +54,9 @@ fn setup(
 
     commands.insert_resource(ShowArrows(true));
     commands.insert_resource(MousePos(Vec2::ZERO));
+
+    //Disable Avian Gravity
+    commands.insert_resource(Gravity::ZERO);
 
     commands.spawn((
         Mesh2d(meshes.add(Circle::new(10.0))),
@@ -91,11 +100,11 @@ fn keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowA
 
 fn apply_gravity(
     gravitator: Query<(&Mass, &Transform), With<Gravitator>>,
-    mut gravitee: Query<(&Mass, &Transform, &mut LinearVelocity)>,
+    mut gravitated: Query<(&Mass, &Transform, &mut LinearVelocity), With<Gravitable>>,
     time: Res<Time>,
 ) {
     for (mass, transform) in &gravitator {
-        for (gravitee_mass, gravitee_transform, mut velocity) in &mut gravitee {
+        for (gravitee_mass, gravitee_transform, mut velocity) in &mut gravitated {
             let diff_vector = transform.translation.xy() - gravitee_transform.translation.xy();
 
             let dist = diff_vector.length();
@@ -139,41 +148,62 @@ fn mouse_input(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    if mouse_input.just_pressed(MouseButton::Left) {
-        create_gravitable(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
-    }
-
     if mouse_input.just_pressed(MouseButton::Right) {
         create_stationary(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
     }
-}
 
-
-
-fn create_gravitable(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    pos: Vec2,
-) {
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(10.0))),
-        Transform {
-            translation: Vec3 {
-                x: pos.x,
-                y: pos.y,
+    if mouse_input.just_pressed(MouseButton::Left) {
+        commands.spawn((
+            Mesh2d(meshes.add(Circle::new(10.0))),
+            Transform {
+                translation: Vec3 {
+                    x: mouse_pos.0.x,
+                    y: mouse_pos.0.y,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
-        Mass(10.0),
-        Gravitable,
-        Gravitator,
-        LinearVelocity(Vec2::new(0.0, 0.0)),
-        Collider::circle(10.0 as Scalar),
-        RigidBody::Dynamic,
-    ));
+            MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
+            Selected,
+        ));
+    }
+}
+
+fn release_object(
+    selected_query: Query<(Entity, &Transform), With<Selected>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    mouse_pos: Res<MousePos>,
+    mut commands: Commands,
+) {
+    if mouse_input.just_released(MouseButton::Left) {
+        for selected in selected_query.iter() {
+            let dif = -(mouse_pos.0 - selected.1.translation.xy());
+
+            commands
+                .entity(selected.0)
+                .insert((
+                    Mass(10.0),
+                    Gravitable,
+                    Gravitator,
+                    LinearVelocity(dif),
+                    Collider::circle(10.0 as Scalar),
+                    RigidBody::Dynamic,
+                ))
+                .remove::<Selected>();
+        }
+    }
+}
+
+fn entity_clear(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
+    query: Query<Entity, With<Mesh2d>>,
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        query
+            .iter()
+            .for_each(|x| commands.get_entity(x).unwrap().despawn())
+    }
 }
 
 fn create_stationary(
@@ -200,7 +230,7 @@ fn create_stationary(
     ));
 }
 
-fn draw_arrows(
+fn draw_velocity_arrows(
     show_arrows: Res<ShowArrows>,
     mut gizmos: Gizmos,
     query: Query<(&LinearVelocity, &Transform)>,
@@ -210,6 +240,25 @@ fn draw_arrows(
             gizmos.arrow_2d(
                 transform.translation.xy(),
                 transform.translation.xy() + velocity.0.xy() / 5.0,
+                Color::srgb(0.1, 0.4, 0.6),
+            );
+        })
+    }
+}
+
+fn draw_selected_velocity_arrows(
+    show_arrows: Res<ShowArrows>,
+    mouse_pos: Res<MousePos>,
+    mut gizmos: Gizmos,
+    transform_query: Query<&Transform, With<Selected>>,
+) {
+    if show_arrows.0 {
+        transform_query.iter().for_each(|transform| {
+            let dif = -(mouse_pos.0 - transform.translation.xy());
+
+            gizmos.arrow_2d(
+                transform.translation.xy(),
+                transform.translation.xy() + dif / 5.0,
                 Color::srgb(0.1, 0.4, 0.6),
             );
         })
