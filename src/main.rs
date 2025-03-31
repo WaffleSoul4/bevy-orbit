@@ -37,10 +37,24 @@ impl Trigger {
     fn trigger(&mut self) {
         self.state = true;
     }
+
+    fn reset(&mut self) {
+        self.state = false;
+    }
 }
 
 #[derive(Component)]
 struct Triggerer;
+
+#[derive(PhysicsLayer, Default)]
+enum Layer {
+    #[default]
+    Main,
+    Triggers,
+}
+
+#[derive(Component)]
+struct TriggerIndicator;
 
 fn main() {
     App::new()
@@ -57,11 +71,11 @@ fn main() {
                 keyboard_input,
                 release_object,
                 draw_selected_velocity_arrows,
-                entity_clear,
                 create_trigger,
                 update_triggers,
             ),
         )
+        .add_systems(PostUpdate, (clear_level, reset_level))
         .run();
 }
 
@@ -128,20 +142,23 @@ fn update_triggers(
             }, // Check if the trigger is among the collisions
         )
         .for_each(|(_, ref mut t, transform)| {
-            t.trigger();
+            if !t.state {
+                t.trigger();
 
-            commands.spawn((
-                Mesh2d(meshes.add(Circle::new(12.0))),
-                Transform {
-                    translation: Vec3 {
-                        x: transform.translation.x,
-                        y: transform.translation.y,
-                        z: transform.translation.z - 1.0,
+                commands.spawn((
+                    Mesh2d(meshes.add(Circle::new(12.0))),
+                    Transform {
+                        translation: Vec3 {
+                            x: transform.translation.x,
+                            y: transform.translation.y,
+                            z: transform.translation.z - 1.0,
+                        },
+                        ..transform.clone()
                     },
-                    ..transform.clone()
-                },
-                MeshMaterial2d(materials.add(Color::srgb(0.1, 0.7, 0.3))),
-            ));
+                    MeshMaterial2d(materials.add(Color::srgb(0.1, 0.7, 0.3))),
+                    TriggerIndicator,
+                ));
+            }
         });
 }
 
@@ -182,6 +199,7 @@ fn create_trigger(
             MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
             Trigger::new(false),
             Collider::circle(10.0),
+            CollisionLayers::new(Layer::Triggers, [Layer::Main]),
         ));
     }
 }
@@ -240,15 +258,30 @@ fn release_object(
     }
 }
 
-fn entity_clear(
+fn clear_level(
     mut commands: Commands,
     keys: Res<ButtonInput<KeyCode>>,
     query: Query<Entity, With<Mesh2d>>,
 ) {
-    if keys.just_pressed(KeyCode::Space) {
+    if keys.just_pressed(KeyCode::Space) && keys.pressed(KeyCode::ShiftLeft) {
         query
             .iter()
             .for_each(|x| commands.get_entity(x).unwrap().despawn())
+    }
+}
+
+fn reset_level(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
+    remove_query: Query<Entity, Or<(With<Gravitable>, With<TriggerIndicator>)>>,
+    mut trigger_query: Query<&mut Trigger>,
+) {
+    if keys.just_pressed(KeyCode::Space) && !keys.pressed(KeyCode::ShiftLeft) {
+        remove_query
+            .iter()
+            .for_each(|x| commands.get_entity(x).unwrap().despawn());
+
+        trigger_query.iter_mut().for_each(|ref mut x| x.reset());
     }
 }
 
