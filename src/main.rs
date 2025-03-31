@@ -24,6 +24,24 @@ struct MousePos(Vec2);
 #[derive(Component)]
 struct Selected;
 
+#[derive(Component)]
+struct Trigger {
+    pub state: bool,
+}
+
+impl Trigger {
+    fn new(state: bool) -> Self {
+        Trigger { state }
+    }
+
+    fn trigger(&mut self) {
+        self.state = true;
+    }
+}
+
+#[derive(Component)]
+struct Triggerer;
+
 fn main() {
     App::new()
         .init_gizmo_group::<ArrowGizmos>()
@@ -40,6 +58,8 @@ fn main() {
                 release_object,
                 draw_selected_velocity_arrows,
                 entity_clear,
+                create_trigger,
+                update_triggers,
             ),
         )
         .run();
@@ -47,8 +67,8 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2d);
 
@@ -57,39 +77,6 @@ fn setup(
 
     //Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
-
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(10.0))),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.3, 0.7))),
-        Gravitator,
-        Mass(20.0),
-        Collider::circle(10.0 as Scalar),
-        RigidBody::Dynamic,
-    ));
-
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(10.0))),
-        Transform::from_xyz(100.0, 0.0, 0.0),
-        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
-        Mass(10.0),
-        Gravitable,
-        LinearVelocity(Vec2::new(0.0, -50.0)),
-        Collider::circle(10.0 as Scalar),
-        RigidBody::Dynamic,
-    ));
-
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(10.0))),
-        Transform::from_xyz(-100.0, 50.0, 0.0),
-        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
-        Mass(10.0),
-        Gravitable,
-        Gravitator,
-        LinearVelocity(Vec2::new(0.0, 100.0)),
-        Collider::circle(10.0 as Scalar),
-        RigidBody::Dynamic,
-    ));
 }
 
 fn keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowArrows>) {
@@ -124,20 +111,78 @@ fn apply_gravity(
     }
 }
 
+fn update_triggers(
+    mut trigger_query: Query<(Entity, &mut Trigger, &Transform), With<Collider>>,
+    collisions: Res<Collisions>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let _ = trigger_query
+        .iter_mut()
+        .filter(
+            |x| {
+                collisions
+                    .iter()
+                    .any(|y| y.entity1 == x.0 || y.entity2 == x.0)
+            }, // Check if the trigger is among the collisions
+        )
+        .for_each(|(_, ref mut t, transform)| {
+            t.trigger();
+
+            commands.spawn((
+                Mesh2d(meshes.add(Circle::new(12.0))),
+                Transform {
+                    translation: Vec3 {
+                        x: transform.translation.x,
+                        y: transform.translation.y,
+                        z: transform.translation.z - 1.0,
+                    },
+                    ..transform.clone()
+                },
+                MeshMaterial2d(materials.add(Color::srgb(0.1, 0.7, 0.3))),
+            ));
+        });
+}
+
 fn mouse_tracker_sys(
     windows: Query<&Window>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
     mut mouse_pos: ResMut<MousePos>,
 ) {
     let window = windows.single();
-    let (camera, camera_transform) = camera_q.single();
+    let (camera, camera_transform) = camera_query.single();
 
     if let Some(world_position) = window
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
     {
-        //eprintln!("Mouse coords are: {}, {}", world_position.x, world_position.y)
         *mouse_pos = MousePos(Vec2::new(world_position.x, world_position.y))
+    }
+}
+
+fn create_trigger(
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse_pos: Res<MousePos>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if keys.just_pressed(KeyCode::KeyZ) {
+        commands.spawn((
+            Mesh2d(meshes.add(Circle::new(10.0))),
+            Transform {
+                translation: Vec3 {
+                    x: mouse_pos.0.x,
+                    y: mouse_pos.0.y,
+                    z: -1.0,
+                },
+                ..default()
+            },
+            MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
+            Trigger::new(false),
+            Collider::circle(10.0),
+        ));
     }
 }
 
@@ -188,6 +233,7 @@ fn release_object(
                     LinearVelocity(dif),
                     Collider::circle(10.0 as Scalar),
                     RigidBody::Dynamic,
+                    Triggerer,
                 ))
                 .remove::<Selected>();
         }
@@ -239,7 +285,7 @@ fn draw_velocity_arrows(
         query.iter().for_each(|(velocity, transform)| {
             gizmos.arrow_2d(
                 transform.translation.xy(),
-                transform.translation.xy() + velocity.0.xy() / 5.0,
+                transform.translation.xy() + velocity.0.xy() / 6.0,
                 Color::srgb(0.1, 0.4, 0.6),
             );
         })
@@ -258,7 +304,7 @@ fn draw_selected_velocity_arrows(
 
             gizmos.arrow_2d(
                 transform.translation.xy(),
-                transform.translation.xy() + dif / 5.0,
+                transform.translation.xy() + dif / 6.0,
                 Color::srgb(0.1, 0.4, 0.6),
             );
         })
