@@ -2,6 +2,7 @@ use avian2d::{math::*, prelude::*};
 use bevy::prelude::*;
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
+const CAMERA_MOVE_SPEED: f32 = 5.0;
 
 #[derive(Component, Debug)]
 struct Mass(f32);
@@ -29,6 +30,9 @@ struct Trigger {
     pub state: bool,
 }
 
+#[derive(Component)]
+struct GameCamera;
+
 impl Trigger {
     fn new(state: bool) -> Self {
         Trigger { state }
@@ -43,9 +47,6 @@ impl Trigger {
     }
 }
 
-#[derive(Component)]
-struct Triggerer;
-
 #[derive(PhysicsLayer, Default)]
 enum Layer {
     #[default]
@@ -55,6 +56,12 @@ enum Layer {
 
 #[derive(Component)]
 struct TriggerIndicator;
+
+#[derive(Resource)]
+enum GameState {
+    Editor,
+    Play,
+}
 
 fn main() {
     App::new()
@@ -73,6 +80,8 @@ fn main() {
                 draw_selected_velocity_arrows,
                 create_trigger,
                 update_triggers,
+                move_camera,
+                zoom_camera,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
@@ -84,10 +93,11 @@ fn setup(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    commands.spawn(Camera2d);
+    commands.spawn((Camera2d, GameCamera));
 
     commands.insert_resource(ShowArrows(true));
     commands.insert_resource(MousePos(Vec2::ZERO));
+    commands.insert_resource(GameState::Editor);
 
     //Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
@@ -110,16 +120,71 @@ fn apply_gravity(
 
             let dist = diff_vector.length();
 
-            // TODO: Dist implementation being quite odd...
-            // Progress: Normilization could work but also being wierd
-            // Fixed by making sure the dist is greater than 0 so the normilization doesn't fail
-
             if dist > 0.01 {
                 velocity.0 += diff_vector.normalize()
                     * (gravitee_mass.0 * mass.0 / dist.powi(2))
                     * 10000.0
                     * GRAVITATIONAL_CONSTANT
                     * time.delta_secs()
+            }
+        }
+    }
+}
+
+fn move_camera(
+    mut camera_query: Query<&mut Transform, With<GameCamera>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    state: Res<GameState>,
+) {
+    match *state {
+        GameState::Editor => {
+            let mut transform = camera_query.iter_mut().next().unwrap();
+
+            if keys.pressed(KeyCode::ArrowRight) {
+                transform.translation.x += CAMERA_MOVE_SPEED;
+            }
+
+            if keys.pressed(KeyCode::ArrowLeft) {
+                transform.translation.x -= CAMERA_MOVE_SPEED;
+            }
+
+            if keys.pressed(KeyCode::ArrowDown) {
+                transform.translation.y -= CAMERA_MOVE_SPEED;
+            }
+
+            if keys.pressed(KeyCode::ArrowUp) {
+                transform.translation.y += CAMERA_MOVE_SPEED;
+            }
+        },
+        GameState::Play => {
+            // Still need to add a main player kind of thing
+        }
+    }
+}
+
+fn zoom_camera(
+    mut projection_query: Query<&mut OrthographicProjection, With<GameCamera>>,
+    mut scroll_events: EventReader<bevy::input::mouse::MouseWheel>,
+) {
+
+    use bevy::input::mouse::MouseScrollUnit;
+
+    // Scaling mode is worth looking into instead for manual zoom
+
+    let mut projection = projection_query.single_mut();
+
+    for event in scroll_events.read() {
+        match event.unit {
+            MouseScrollUnit::Line => {
+                if event.y <= -1.0 {
+                    projection.scale /= 1.25;
+                } else if event.y >= 1.0 {
+                    projection.scale *= 1.25;
+                }
+            }
+            MouseScrollUnit::Pixel => {
+                println!("Scroll (pixel units): vertical: {}, horizontal: {}", event.y, event.x);
+                todo!()
             }
         }
     }
@@ -134,13 +199,11 @@ fn update_triggers(
 ) {
     let _ = trigger_query
         .iter_mut()
-        .filter(
-            |x| {
-                collisions
-                    .iter()
-                    .any(|y| y.entity1 == x.0 || y.entity2 == x.0)
-            }, // Check if the trigger is among the collisions
-        )
+        .filter(|x| {
+            collisions
+                .iter()
+                .any(|y| y.entity1 == x.0 || y.entity2 == x.0) // Check if the trigger is among the collisions
+        })
         .for_each(|(_, ref mut t, transform)| {
             if !t.state {
                 t.trigger();
@@ -212,7 +275,7 @@ fn mouse_input(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Right) {
-        create_stationary(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
+        create_static(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
     }
 
     if mouse_input.just_pressed(MouseButton::Left) {
@@ -251,7 +314,6 @@ fn release_object(
                     LinearVelocity(dif),
                     Collider::circle(10.0 as Scalar),
                     RigidBody::Dynamic,
-                    Triggerer,
                 ))
                 .remove::<Selected>();
         }
@@ -285,7 +347,7 @@ fn reset_level(
     }
 }
 
-fn create_stationary(
+fn create_static(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
