@@ -55,9 +55,12 @@ enum Layer {
 }
 
 #[derive(Component)]
+struct MainObject; // Oh god the naming is getting worse
+
+#[derive(Component)]
 struct TriggerIndicator;
 
-#[derive(Resource)]
+#[derive(Resource, PartialEq)]
 enum GameState {
     Editor,
     Play,
@@ -75,13 +78,15 @@ fn main() {
                 mouse_tracker_sys,
                 draw_velocity_arrows,
                 mouse_input,
-                keyboard_input,
+                toggle_arrows,
+                toggle_gamestate,
                 release_object,
                 draw_selected_velocity_arrows,
                 create_trigger,
                 update_triggers,
                 move_camera,
                 zoom_camera,
+                move_camera_around_main_object,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
@@ -99,13 +104,25 @@ fn setup(
     commands.insert_resource(MousePos(Vec2::ZERO));
     commands.insert_resource(GameState::Editor);
 
-    //Disable Avian Gravity
+    // Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
 }
 
-fn keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowArrows>) {
+fn toggle_arrows(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowArrows>) {
     if keys.just_pressed(KeyCode::KeyQ) {
         show_arrows.0 = !show_arrows.0
+    }
+}
+
+// I still don't know if seperating inputs like this is OK
+// Should run in parralel(?)
+
+fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState>) {
+    if keys.just_pressed(KeyCode::KeyE) {
+        *state = match *state {
+            GameState::Editor => GameState::Play,
+            GameState::Play => GameState::Editor,
+        }
     }
 }
 
@@ -131,60 +148,122 @@ fn apply_gravity(
     }
 }
 
-fn move_camera(
+fn move_camera_around_main_object(
+    state: Res<GameState>,
+    main_object_query: Query<&Transform, (Without<GameCamera>, With<MainObject>)>,
     mut camera_query: Query<&mut Transform, With<GameCamera>>,
+    window_query: Query<&Window, Without<GameCamera>>,
+) {
+    if main_object_query.iter().count() != 0 && *state == GameState::Play{
+        let main_object_translation = main_object_query
+            .get_single()
+            .expect("Multiple main objects detected")
+            .translation;
+
+        let mut camera_translation = camera_query
+            .get_single_mut()
+            .expect("Multiple game cameras detected")
+            .translation;
+
+        let window = window_query
+            .get_single()
+            .expect("Multiple windows detected");
+
+        let window_bounding_box = bevy::math::bounding::Aabb2d::new(
+            camera_translation.xy(),
+            Vec2::new(window.width() * 0.4, window.height() * 0.4),
+        );
+
+        let closest_point =
+            window_bounding_box.closest_point(main_object_translation.xy());
+
+        if closest_point == main_object_translation.xy() {
+
+            // In the bounding box
+
+            let dist_between = camera_translation.xy() - closest_point;
+
+            // Move 1/60th of the distance towards the obj
+
+            update_xy(&mut camera_translation, -dist_between / 60.0);
+        } else {
+            
+            // Outside of bounding box
+
+            let dist_between = -closest_point + main_object_translation.xy();
+
+            // Instantly move to the closest point
+
+            update_xy(&mut camera_translation, dist_between)
+        }
+    }
+}
+
+fn update_xy(vec: &mut Vec3, xy: Vec2) {
+    vec.x += xy.x;
+    vec.y += xy.y;
+}
+
+fn move_camera(
+    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
     keys: Res<ButtonInput<KeyCode>>,
     state: Res<GameState>,
 ) {
-    match *state {
-        GameState::Editor => {
-            let mut transform = camera_query.iter_mut().next().unwrap();
+    if *state == GameState::Editor {
+        let (mut transform, projection) = camera_query.single_mut();
 
-            if keys.pressed(KeyCode::ArrowRight) {
-                transform.translation.x += CAMERA_MOVE_SPEED;
-            }
+        let camera_movement_speed = CAMERA_MOVE_SPEED * projection.scale;
 
-            if keys.pressed(KeyCode::ArrowLeft) {
-                transform.translation.x -= CAMERA_MOVE_SPEED;
-            }
+        if keys.pressed(KeyCode::ArrowRight) {
+            transform.translation.x += camera_movement_speed;
+        }
 
-            if keys.pressed(KeyCode::ArrowDown) {
-                transform.translation.y -= CAMERA_MOVE_SPEED;
-            }
+        if keys.pressed(KeyCode::ArrowLeft) {
+            transform.translation.x -= camera_movement_speed;
+        }
 
-            if keys.pressed(KeyCode::ArrowUp) {
-                transform.translation.y += CAMERA_MOVE_SPEED;
-            }
-        },
-        GameState::Play => {
-            // Still need to add a main player kind of thing
+        if keys.pressed(KeyCode::ArrowDown) {
+            transform.translation.y -= camera_movement_speed;
+        }
+
+        if keys.pressed(KeyCode::ArrowUp) {
+            transform.translation.y += camera_movement_speed;
         }
     }
 }
 
 fn zoom_camera(
-    mut projection_query: Query<&mut OrthographicProjection, With<GameCamera>>,
+    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform), With<GameCamera>>,
     mut scroll_events: EventReader<bevy::input::mouse::MouseWheel>,
+    state: Res<GameState>,
+    mouse_pos: Res<MousePos>,
 ) {
-
     use bevy::input::mouse::MouseScrollUnit;
 
-    // Scaling mode is worth looking into instead for manual zoom
+    if *state == GameState::Editor {
+        let (mut projection, mut transform) = camera_query.single_mut();
 
-    let mut projection = projection_query.single_mut();
+        for event in scroll_events.read() {
+            match event.unit {
+                MouseScrollUnit::Line => {
+                    if event.y <= -1.0 {
+                        projection.scale *= 1.1
+                    } else if event.y >= 1.0 {
+                        projection.scale /= 1.1;
+                    }
 
-    for event in scroll_events.read() {
-        match event.unit {
-            MouseScrollUnit::Line => {
-                if event.y <= -1.0 {
-                    projection.scale /= 1.25;
-                } else if event.y >= 1.0 {
-                    projection.scale *= 1.25;
+                    let dif_vec =
+                        -transform.translation + Vec3::new(mouse_pos.0.x, mouse_pos.0.y, 0.0);
+
+                    transform.translation += dif_vec / 10.0;
                 }
-            }
-            MouseScrollUnit::Pixel => {
-                println!("Scroll (pixel units): vertical: {}, horizontal: {}", event.y, event.x);
-                todo!()
+                MouseScrollUnit::Pixel => {
+                    println!(
+                        "Scroll (pixel units): vertical: {}, horizontal: {}",
+                        event.y, event.x
+                    );
+                    todo!()
+                }
             }
         }
     }
@@ -299,14 +378,16 @@ fn release_object(
     selected_query: Query<(Entity, &Transform), With<Selected>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
 ) {
     if mouse_input.just_released(MouseButton::Left) {
         for selected in selected_query.iter() {
             let dif = -(mouse_pos.0 - selected.1.translation.xy());
 
-            commands
-                .entity(selected.0)
+            let mut entity_commands = commands.entity(selected.0);
+
+            entity_commands
                 .insert((
                     Mass(10.0),
                     Gravitable,
@@ -316,6 +397,10 @@ fn release_object(
                     RigidBody::Dynamic,
                 ))
                 .remove::<Selected>();
+
+            if keys.pressed(KeyCode::ShiftLeft) {
+                entity_commands.insert(MainObject);
+            }
         }
     }
 }
