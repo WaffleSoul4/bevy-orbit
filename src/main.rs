@@ -1,5 +1,8 @@
 use avian2d::{math::*, prelude::*};
-use bevy::prelude::*;
+use bevy::{
+    input::mouse::MouseMotion,
+    prelude::*,
+};
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 const CAMERA_MOVE_SPEED: f32 = 5.0;
@@ -14,7 +17,7 @@ struct Gravitable;
 struct Gravitator;
 
 #[derive(Resource)]
-struct ShowArrows(bool);
+struct DebugInfo(bool);
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
 struct ArrowGizmos;
@@ -55,7 +58,7 @@ enum Layer {
 }
 
 #[derive(Component)]
-struct MainObject; // Oh god the naming is getting worse
+struct CameraTrackable; // Oh god the naming is getting worse
 
 #[derive(Component)]
 struct TriggerIndicator;
@@ -86,7 +89,9 @@ fn main() {
                 update_triggers,
                 move_camera,
                 zoom_camera,
+                mouse_panning,
                 move_camera_around_main_object,
+                draw_grid,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
@@ -100,7 +105,7 @@ fn setup(
 ) {
     commands.spawn((Camera2d, GameCamera));
 
-    commands.insert_resource(ShowArrows(true));
+    commands.insert_resource(DebugInfo(true));
     commands.insert_resource(MousePos(Vec2::ZERO));
     commands.insert_resource(GameState::Editor);
 
@@ -108,7 +113,7 @@ fn setup(
     commands.insert_resource(Gravity::ZERO);
 }
 
-fn toggle_arrows(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<ShowArrows>) {
+fn toggle_arrows(keys: Res<ButtonInput<KeyCode>>, mut show_arrows: ResMut<DebugInfo>) {
     if keys.just_pressed(KeyCode::KeyQ) {
         show_arrows.0 = !show_arrows.0
     }
@@ -150,52 +155,53 @@ fn apply_gravity(
 
 fn move_camera_around_main_object(
     state: Res<GameState>,
-    main_object_query: Query<&Transform, (Without<GameCamera>, With<MainObject>)>,
+    main_object_query: Query<&Transform, (Without<GameCamera>, With<CameraTrackable>)>,
     mut camera_query: Query<&mut Transform, With<GameCamera>>,
     window_query: Query<&Window, Without<GameCamera>>,
 ) {
-    if main_object_query.iter().count() != 0 && *state == GameState::Play{
+    if main_object_query.iter().count() != 0 && *state == GameState::Play {
         let main_object_translation = main_object_query
             .get_single()
             .expect("Multiple main objects detected")
             .translation;
 
-        let mut camera_translation = camera_query
+        let mut camera_transform = camera_query
             .get_single_mut()
-            .expect("Multiple game cameras detected")
-            .translation;
+            .expect("Multiple game cameras detected");
 
         let window = window_query
             .get_single()
             .expect("Multiple windows detected");
 
         let window_bounding_box = bevy::math::bounding::Aabb2d::new(
-            camera_translation.xy(),
+            camera_transform.translation.xy(),
             Vec2::new(window.width() * 0.4, window.height() * 0.4),
         );
 
-        let closest_point =
-            window_bounding_box.closest_point(main_object_translation.xy());
+        let closest_point = window_bounding_box.closest_point(main_object_translation.xy());
 
         if closest_point == main_object_translation.xy() {
-
             // In the bounding box
 
-            let dist_between = camera_translation.xy() - closest_point;
+            let dist_between = camera_transform.translation.xy() - closest_point;
 
             // Move 1/60th of the distance towards the obj
 
-            update_xy(&mut camera_translation, -dist_between / 60.0);
+            update_xy(
+                &mut camera_transform.translation,
+                dbg!(-dist_between / 60.0),
+            );
         } else {
-            
             // Outside of bounding box
 
             let dist_between = -closest_point + main_object_translation.xy();
 
             // Instantly move to the closest point
 
-            update_xy(&mut camera_translation, dist_between)
+            update_xy(&mut camera_transform.translation, dist_between);
         }
+
+        println!("Camera translation {camera_transform:?}");
     }
 }
 
@@ -244,16 +250,19 @@ fn zoom_camera(
         let (mut projection, mut transform) = camera_query.single_mut();
 
         for event in scroll_events.read() {
+            let mut zoom_modifier = 1.0;
+
             match event.unit {
                 MouseScrollUnit::Line => {
                     if event.y <= -1.0 {
-                        projection.scale *= 1.1
+                        projection.scale *= 1.1;
+                        zoom_modifier = -1.0;
                     } else if event.y >= 1.0 {
                         projection.scale /= 1.1;
                     }
 
-                    let dif_vec =
-                        -transform.translation + Vec3::new(mouse_pos.0.x, mouse_pos.0.y, 0.0);
+                    let dif_vec = -transform.translation
+                        + Vec3::new(mouse_pos.0.x, mouse_pos.0.y, 0.0) * zoom_modifier;
 
                     transform.translation += dif_vec / 10.0;
                 }
@@ -349,6 +358,7 @@ fn create_trigger(
 fn mouse_input(
     mouse_input: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
+    state: Res<GameState>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -357,7 +367,7 @@ fn mouse_input(
         create_static(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
     }
 
-    if mouse_input.just_pressed(MouseButton::Left) {
+    if mouse_input.just_pressed(MouseButton::Left) && *state == GameState::Play {
         commands.spawn((
             Mesh2d(meshes.add(Circle::new(10.0))),
             Transform {
@@ -371,6 +381,24 @@ fn mouse_input(
             MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
             Selected,
         ));
+    }
+}
+
+fn mouse_panning(
+    state: Res<GameState>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    mut mouse_motion_reader: EventReader<MouseMotion>,
+    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
+) {
+    if *state == GameState::Editor && mouse_input.pressed(MouseButton::Left) {
+        let (mut camera_transform, projection) = camera_query.single_mut();
+
+        for mouse_motion in mouse_motion_reader.read() {
+            update_xy(
+                &mut camera_transform.translation,
+                Vec2::new(-mouse_motion.delta.x, mouse_motion.delta.y) * projection.scale,
+            );
+        }
     }
 }
 
@@ -399,7 +427,7 @@ fn release_object(
                 .remove::<Selected>();
 
             if keys.pressed(KeyCode::ShiftLeft) {
-                entity_commands.insert(MainObject);
+                entity_commands.insert(CameraTrackable);
             }
         }
     }
@@ -457,7 +485,7 @@ fn create_static(
 }
 
 fn draw_velocity_arrows(
-    show_arrows: Res<ShowArrows>,
+    show_arrows: Res<DebugInfo>,
     mut gizmos: Gizmos,
     query: Query<(&LinearVelocity, &Transform)>,
 ) {
@@ -473,12 +501,12 @@ fn draw_velocity_arrows(
 }
 
 fn draw_selected_velocity_arrows(
-    show_arrows: Res<ShowArrows>,
+    debug_info: Res<DebugInfo>,
     mouse_pos: Res<MousePos>,
     mut gizmos: Gizmos,
     transform_query: Query<&Transform, With<Selected>>,
 ) {
-    if show_arrows.0 {
+    if debug_info.0 {
         transform_query.iter().for_each(|transform| {
             let dif = -(mouse_pos.0 - transform.translation.xy());
 
@@ -488,5 +516,65 @@ fn draw_selected_velocity_arrows(
                 Color::srgb(0.1, 0.4, 0.6),
             );
         })
+    }
+}
+
+fn draw_grid(
+    debug_info: Res<DebugInfo>,
+    mut gizmos: Gizmos,
+    camera_query: Query<(&Transform, &OrthographicProjection), With<GameCamera>>,
+) {
+    if debug_info.0 {
+        let (camera_transform, projection) = camera_query.single();
+
+        let mut scale = projection.scale;
+
+        let scale_jumps_iter = std::iter::successors(Some(0.00390625_f32), |x| Some(x * 2.0));
+
+        for scale_jump in scale_jumps_iter {
+            if scale_jump > scale {
+                scale = scale_jump;
+                break;
+            }
+        }
+
+        let grid_spacing = scale * 64.0;
+
+        let camera_xy = camera_transform.translation.xy();
+
+        let closest_center = dbg!(camera_xy - (camera_xy % (grid_spacing * 2.0)));
+
+        let x_width = 16_f32;
+        let y_width = 16_f32;
+
+        for x in -x_width as i32..x_width as i32 {
+            let line_x: f32 = x as f32 * grid_spacing;
+            let lightness = if dbg!(line_x % (grid_spacing * 2.0)) == 0.0 {
+                0.2
+            } else {
+                0.05
+            };
+            gizmos.line_2d(
+                Vec2::new(line_x as f32, y_width * grid_spacing) + closest_center,
+                Vec2::new(line_x as f32, -y_width * grid_spacing) + closest_center,
+                LinearRgba::gray(lightness),
+            );
+        }
+
+        for y in -y_width as i32..y_width as i32 {
+            let line_y: f32 = y as f32 * grid_spacing;
+
+            let lightness = if line_y % (grid_spacing * 2.0) == 0.0 {
+                0.2
+            } else {
+                0.05
+            };
+
+            gizmos.line_2d(
+                Vec2::new(x_width * grid_spacing, line_y as f32) + closest_center,
+                Vec2::new(-x_width * grid_spacing, line_y as f32) + closest_center,
+                LinearRgba::gray(lightness),
+            );
+        }
     }
 }
