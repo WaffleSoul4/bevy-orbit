@@ -21,7 +21,6 @@ struct Gravitator;
 struct DebugSettings {
     show_grid: bool,
     show_velocity_arrows: bool,
-    show_grid_settings: bool,
     grid_settings: GridSettings,
 }
 
@@ -117,13 +116,12 @@ fn main() {
                 draw_selected_velocity_arrows,
                 create_trigger,
                 update_triggers,
-                move_camera,
+                pan_camera_keys,
                 zoom_camera,
-                mouse_panning,
+                pan_camera_mouse,
                 move_camera_around_main_object,
                 draw_grid,
                 simulation_setting,
-                grid_settings,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
@@ -140,7 +138,6 @@ fn setup(
     commands.insert_resource(DebugSettings {
         show_grid: false,
         show_velocity_arrows: false,
-        show_grid_settings: false,
         grid_settings: GridSettings::default(),
     });
     commands.insert_resource(MousePos(Vec2::ZERO));
@@ -233,7 +230,7 @@ fn update_xy(vec: &mut Vec3, xy: Vec2) {
     vec.y += xy.y;
 }
 
-fn move_camera(
+fn pan_camera_keys(
     mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
@@ -402,13 +399,13 @@ fn mouse_input(
     }
 }
 
-fn mouse_panning(
-    state: Res<GameState>,
+fn pan_camera_mouse(
     mouse_input: Res<ButtonInput<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut mouse_motion_reader: EventReader<MouseMotion>,
     mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
 ) {
-    if *state == GameState::Editor && mouse_input.pressed(MouseButton::Left) {
+    if mouse_input.pressed(MouseButton::Left) && keys.pressed(KeyCode::ShiftLeft) {
         let (mut camera_transform, projection) = camera_query.single_mut();
 
         for mouse_motion in mouse_motion_reader.read() {
@@ -615,62 +612,54 @@ fn simulation_setting(
                 &mut debug_settings.show_velocity_arrows,
                 "Show velocity arrows",
             );
-            ui.checkbox(&mut debug_settings.show_grid_settings, "Show grid settings")
+            ui.collapsing("Grid Settings", |ui| {
+                grid_settings_ui(ui, &mut debug_settings.grid_settings);
+            })
         });
     }
 }
 
-fn grid_settings(
-    mut contexts: EguiContexts,
-    state: Res<GameState>,
-    debug_settings: ResMut<DebugSettings>,
-) {
-    let mut debug_settings = debug_settings;
 
-    if *state == GameState::Editor && debug_settings.show_grid_settings {
-        let grid_settings = &mut debug_settings.grid_settings;
-        let mut lower_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.lower_color);
-        let mut upper_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.upper_color);
+fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
+    let mut lower_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.lower_color);
+    let mut upper_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.upper_color);
 
-        egui::Window::new("Grid Settings").show(contexts.ctx_mut(), |ui| {
-            ui.label("Cell Dimensions");
-            ui.horizontal(|ui| {
-                ui.label("x");
-                ui.add(egui::DragValue::new(&mut grid_settings.cell_size.x));
-                ui.label("y");
-                ui.add(egui::DragValue::new(&mut grid_settings.cell_size.y))
-            });
-            ui.label("Cell Draw Dimensions");
-            ui.horizontal(|ui| {
-                ui.label("x");
-                ui.add(egui::DragValue::new(
-                    &mut grid_settings.grid_draw_dimensions.x,
-                ));
-                ui.label("y");
-                ui.add(egui::DragValue::new(
-                    &mut grid_settings.grid_draw_dimensions.y,
-                ))
-            });
-            ui.label("Recursion count");
-            ui.add(egui::Slider::new(&mut grid_settings.recursive_depth, 2..=6));
-            ui.label("Colors");
-            ui.horizontal(|ui| {
-                ui.label("Lower");
-                ui.color_edit_button_hsva(&mut lower_egui_hsva);
-                ui.label("Upper");
-                ui.color_edit_button_hsva(&mut upper_egui_hsva);
-            })
-        });
+    ui.label("Cell Dimensions");
+    ui.horizontal(|ui| {
+        ui.label("x");
+        ui.add(egui::DragValue::new(&mut grid_settings.cell_size.x));
+        ui.label("y");
+        ui.add(egui::DragValue::new(&mut grid_settings.cell_size.y))
+    });
+    ui.label("Cell Draw Dimensions");
+    ui.horizontal(|ui| {
+        ui.label("x");
+        ui.add(egui::DragValue::new(
+            &mut grid_settings.grid_draw_dimensions.x,
+        ));
+        ui.label("y");
+        ui.add(egui::DragValue::new(
+            &mut grid_settings.grid_draw_dimensions.y,
+        ))
+    });
+    ui.label("Recursion count");
+    ui.add(egui::Slider::new(&mut grid_settings.recursive_depth, 2..=6));
+    ui.label("Colors");
+    ui.horizontal(|ui| {
+        ui.label("Lower");
+        ui.color_edit_button_hsva(&mut lower_egui_hsva);
+        ui.label("Upper");
+        ui.color_edit_button_hsva(&mut upper_egui_hsva);
+    });
 
-        grid_settings.lower_color = egui_hsva_to_bevy_hsva(lower_egui_hsva);
-        grid_settings.upper_color = egui_hsva_to_bevy_hsva(upper_egui_hsva);
-    }
+    grid_settings.lower_color = egui_hsva_to_bevy_hsva(lower_egui_hsva);
+    grid_settings.upper_color = egui_hsva_to_bevy_hsva(upper_egui_hsva);
 }
 
 fn egui_hsva_to_bevy_hsva(hsva: egui::epaint::Hsva) -> Hsva {
-    Hsva::new(hsva.h, hsva.s, hsva.v, hsva.a)
+    Hsva::new(hsva.h * 360.0, hsva.s, hsva.v, hsva.a)
 }
 
 fn bevy_hsva_to_egui_hsva(hsva: Hsva) -> egui::epaint::Hsva {
-    egui::epaint::Hsva::new(hsva.hue, hsva.saturation, hsva.value, hsva.alpha)
+    egui::epaint::Hsva::new(hsva.hue / 360.0, hsva.saturation, hsva.value, hsva.alpha)
 }
