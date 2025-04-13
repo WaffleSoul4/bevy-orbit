@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use avian2d::{math::*, prelude::*};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_egui::{
@@ -41,7 +43,7 @@ impl Default for GridSettings {
     fn default() -> Self {
         GridSettings {
             cell_size: Vec2::new(64.0, 64.0),
-            grid_draw_dimensions: Vec2::new(16.0, 16.0),
+            grid_draw_dimensions: Vec2::new(20.0, 16.0),
             recursive_depth: 2,
             lower_color: Hsva::new(0.0, 0.0, 0.2, 1.0),
             upper_color: Hsva::new(0.0, 0.0, 0.45, 1.0),
@@ -52,7 +54,7 @@ impl Default for GridSettings {
 #[derive(Default, Reflect, GizmoConfigGroup)]
 struct ArrowGizmos;
 
-#[derive(Resource)]
+#[derive(Resource, Deref)]
 struct MousePos(Vec2);
 
 #[derive(Component)]
@@ -61,6 +63,86 @@ struct Selected;
 #[derive(Component)]
 struct Trigger {
     pub state: bool,
+}
+
+// Basically I want to be able to store data ([Gravitable], [Gravitator])
+// but not actually have them enabled
+// This is a terrible solution
+#[derive(Component)]
+struct SelectedDynamicConfig {
+    gravitable: bool,
+    gravitator: bool,
+    radius: f32,
+    // Mass being here just feels more consistent ig
+    mass: f32,
+}
+
+impl SelectedDynamicConfig {
+    fn new(gravitable: bool, gravitator: bool, radius: f32, mass: f32) -> Self {
+        SelectedDynamicConfig {
+            gravitable,
+            gravitator,
+            radius,
+            mass,
+        }
+    }
+}
+
+#[derive(Event, Clone, Copy)]
+enum CreateObject {
+    Static {
+        mass: f32,
+        position: Vec2,
+        radius: f32,
+    },
+    Dynamic {
+        mass: f32,
+        position: Vec2,
+        radius: f32,
+        gravitable: bool,
+        gravitator: bool,
+        selected: bool,
+    },
+    Trigger {
+        position: Vec2,
+    },
+}
+
+impl CreateObject {
+    fn new_static(mass: f32, position: Vec2, radius: f32) -> Self {
+        CreateObject::Static {
+            mass,
+            position,
+            radius,
+        }
+    }
+
+    fn new_dynamic(mass: f32, position: Vec2, radius: f32) -> Self {
+        CreateObject::Dynamic {
+            mass,
+            position,
+            radius,
+            gravitable: true,
+            gravitator: true,
+            selected: false,
+        }
+    }
+
+    fn new_trigger(position: Vec2) -> Self {
+        CreateObject::Trigger { position }
+    }
+
+    // Only run this on dynamics please <3
+    fn set_selected(&mut self) -> &mut Self {
+        match self {
+            CreateObject::Dynamic { selected, .. } => {
+                *selected = true;
+            }
+            _ => panic!("Called set_select on a non-dynamic object"),
+        }
+
+        self
+    }
 }
 
 #[derive(Component)]
@@ -87,6 +169,24 @@ enum Layer {
     Triggers,
 }
 
+#[derive(Resource, Debug)]
+struct PastMouseMotions(VecDeque<Vec2>);
+
+impl Default for PastMouseMotions {
+    fn default() -> Self {
+        let mut past_mouse_motions: VecDeque<Vec2> = VecDeque::new();
+        for _ in 0..5 {
+            past_mouse_motions.push_back(Vec2::ZERO)
+        }
+        PastMouseMotions(past_mouse_motions)
+    }
+}
+
+// I had some errors with LinearVelocity, so this will do until I'm not lazy
+// (Why on earth does vscode think this comment is an error)
+#[derive(Component, Deref, DerefMut)]
+struct CameraVelocity(Vec2);
+
 #[derive(Component)]
 struct CameraTrackable; // Oh god the naming is getting worse
 
@@ -106,25 +206,30 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(
             Update,
+            (move_camera_around_main_object, release_selected, game_binds)
+                .run_if(|state: Res<GameState>| *state == GameState::Play),
+        )
+        .add_systems(
+            Update,
             (
                 apply_gravity,
+                create_objects,
                 mouse_tracker_sys,
                 draw_velocity_arrows,
-                mouse_input,
+                global_binds,
                 toggle_gamestate,
-                release_object,
                 draw_selected_velocity_arrows,
-                create_trigger,
                 update_triggers,
                 pan_camera_keys,
                 zoom_camera,
                 pan_camera_mouse,
-                move_camera_around_main_object,
                 draw_grid,
-                simulation_setting,
+                simulation_settings,
+                apply_camera_velocity,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
+        .add_event::<CreateObject>()
         .run();
 }
 
@@ -133,7 +238,7 @@ fn setup(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    commands.spawn((Camera2d, GameCamera));
+    commands.spawn((Camera2d, GameCamera, CameraVelocity(Vec2::ZERO)));
 
     commands.insert_resource(DebugSettings {
         show_grid: false,
@@ -142,6 +247,8 @@ fn setup(
     });
     commands.insert_resource(MousePos(Vec2::ZERO));
     commands.insert_resource(GameState::Editor);
+
+    commands.insert_resource(PastMouseMotions::default());
 
     // Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
@@ -167,6 +274,12 @@ fn apply_gravity(
 
             let dist = diff_vector.length();
 
+            // This is still necessary for some reason
+            // It throws quite the ambigous error when not included
+            // Something along the lines of:
+            // "The given sine and cosine produce an invalid rotation"
+            // Probably has to do with normalization, might look into it
+
             if dist > 0.01 {
                 velocity.0 += diff_vector.normalize()
                     * (gravitee_mass.0 * mass.0 / dist.powi(2))
@@ -181,7 +294,7 @@ fn apply_gravity(
 fn move_camera_around_main_object(
     state: Res<GameState>,
     main_object_query: Query<&Transform, (Without<GameCamera>, With<CameraTrackable>)>,
-    mut camera_query: Query<&mut Transform, With<GameCamera>>,
+    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
     window_query: Query<&Window, Without<GameCamera>>,
 ) {
     if main_object_query.iter().count() != 0 && *state == GameState::Play {
@@ -190,7 +303,7 @@ fn move_camera_around_main_object(
             .expect("Multiple main objects detected")
             .translation;
 
-        let mut camera_transform = camera_query
+        let (mut camera_transform, camera_projection) = camera_query
             .get_single_mut()
             .expect("Multiple game cameras detected");
 
@@ -212,7 +325,10 @@ fn move_camera_around_main_object(
 
             // Move 1/60th of the distance towards the obj
 
-            update_xy(&mut camera_transform.translation, -dist_between / 60.0);
+            update_xy(
+                &mut camera_transform.translation,
+                (-dist_between / 60.0) / camera_projection.scale,
+            );
         } else {
             // Outside of bounding box
 
@@ -344,101 +460,163 @@ fn mouse_tracker_sys(
     }
 }
 
-fn create_trigger(
-    keys: Res<ButtonInput<KeyCode>>,
+fn global_binds(
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut events: EventWriter<CreateObject>,
 ) {
+    if mouse.just_pressed(MouseButton::Right) {
+        events.send(CreateObject::new_static(10.0, mouse_pos.0, 10.0));
+    }
+
     if keys.just_pressed(KeyCode::KeyZ) {
-        commands.spawn((
-            Mesh2d(meshes.add(Circle::new(10.0))),
-            Transform {
-                translation: Vec3 {
-                    x: mouse_pos.0.x,
-                    y: mouse_pos.0.y,
-                    z: -1.0,
-                },
-                ..default()
-            },
-            MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
-            Trigger::new(false),
-            Collider::circle(10.0),
-            CollisionLayers::new(Layer::Triggers, [Layer::Main]),
-        ));
+        events.send(CreateObject::new_trigger(mouse_pos.0));
     }
 }
 
-fn mouse_input(
-    mouse_input: Res<ButtonInput<MouseButton>>,
+fn game_binds(
+    mouse: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
-    state: Res<GameState>,
+    _keys: Res<ButtonInput<KeyCode>>,
+    mut events: EventWriter<CreateObject>,
+) {
+    if mouse.just_pressed(MouseButton::Left) {
+        events.send(*CreateObject::new_dynamic(10.0, mouse_pos.0, 10.0).set_selected());
+    }
+}
+
+fn create_objects(
+    mut events: EventReader<CreateObject>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    if mouse_input.just_pressed(MouseButton::Right) {
-        create_static(&mut commands, &mut meshes, &mut materials, mouse_pos.0);
-    }
-
-    if mouse_input.just_pressed(MouseButton::Left) && *state == GameState::Play {
-        commands.spawn((
-            Mesh2d(meshes.add(Circle::new(10.0))),
-            Transform {
-                translation: Vec3 {
-                    x: mouse_pos.0.x,
-                    y: mouse_pos.0.y,
-                    ..default()
-                },
-                ..default()
-            },
-            MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
-            Selected,
-        ));
+    for event in events.read() {
+        match event {
+            CreateObject::Static {
+                mass,
+                position,
+                radius,
+            } => {
+                commands.spawn((
+                    Mesh2d(meshes.add(Circle::new(*radius))),
+                    Transform {
+                        translation: position.extend(0.0),
+                        ..default()
+                    },
+                    MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
+                    Mass(*mass),
+                    Gravitator,
+                    Collider::circle(*radius as Scalar),
+                    RigidBody::Static,
+                ));
+            }
+            CreateObject::Dynamic {
+                mass,
+                position,
+                radius,
+                gravitable,
+                gravitator,
+                selected,
+            } => {
+                commands
+                    .spawn((
+                        Mesh2d(meshes.add(Circle::new(10.0))),
+                        Transform::from_translation(position.extend(0.0)),
+                        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
+                        SelectedDynamicConfig::new(*gravitable, *gravitator, *radius, *mass),
+                    ))
+                    .insert_if(Selected, || *selected);
+            }
+            CreateObject::Trigger { position } => {
+                commands.spawn((
+                    Mesh2d(meshes.add(Circle::new(10.0))),
+                    Transform::from_translation(position.extend(-1.0)),
+                    MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
+                    Trigger::new(false),
+                    Collider::circle(10.0),
+                    CollisionLayers::new(Layer::Triggers, [Layer::Main]),
+                ));
+            }
+        }
     }
 }
 
 fn pan_camera_mouse(
     mouse_input: Res<ButtonInput<MouseButton>>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut past_mouse_motions: ResMut<PastMouseMotions>,
     mut mouse_motion_reader: EventReader<MouseMotion>,
-    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
+    mut camera_query: Query<
+        (&mut Transform, &OrthographicProjection, &mut CameraVelocity),
+        With<GameCamera>,
+    >,
 ) {
-    if mouse_input.pressed(MouseButton::Left) && keys.pressed(KeyCode::ShiftLeft) {
-        let (mut camera_transform, projection) = camera_query.single_mut();
+    if !keys.pressed(KeyCode::ShiftLeft) {
+        *past_mouse_motions = PastMouseMotions::default();
+    }
 
+    let (mut camera_transform, projection, mut velocity) = camera_query.single_mut();
+
+    let mut mouse_move_counter = Vec2::ZERO;
+
+    if mouse_input.pressed(MouseButton::Left) && keys.pressed(KeyCode::ShiftLeft) {
         for mouse_motion in mouse_motion_reader.read() {
+            let corrected_mouse_motion = Vec2::new(-mouse_motion.delta.x, mouse_motion.delta.y);
+
+            past_mouse_motions.0.push_back(corrected_mouse_motion);
+            past_mouse_motions.0.pop_front();
+
             update_xy(
                 &mut camera_transform.translation,
-                Vec2::new(-mouse_motion.delta.x, mouse_motion.delta.y) * projection.scale,
+                corrected_mouse_motion * projection.scale,
             );
+            mouse_move_counter += mouse_motion.delta;
         }
     }
+
+    if mouse_input.just_released(MouseButton::Left) {
+        velocity.0 += past_mouse_motions.0.iter().sum::<Vec2>() * projection.scale;
+    }
+
+    if mouse_input.just_pressed(MouseButton::Left) {
+        velocity.0 = Vec2::ZERO
+    }
+
+    velocity.0 /= 1.05
 }
 
-fn release_object(
-    selected_query: Query<(Entity, &Transform), With<Selected>>,
+fn apply_camera_velocity(
+    mut camera_query: Query<(&mut Transform, &CameraVelocity), With<GameCamera>>,
+) {
+    let (mut transform, velocity) = camera_query.single_mut();
+
+    transform.translation += Vec3::new(velocity.x, velocity.y, 0.0);
+}
+
+fn release_selected(
+    selected_query: Query<(Entity, &Transform, &SelectedDynamicConfig), With<Selected>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
     keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
 ) {
     if mouse_input.just_released(MouseButton::Left) {
-        for selected in selected_query.iter() {
-            let dif = -(mouse_pos.0 - selected.1.translation.xy());
+        for (entity, transform, selected_dynamic_config) in selected_query.iter() {
+            let dif = -(mouse_pos.0 - transform.translation.xy());
 
-            let mut entity_commands = commands.entity(selected.0);
+            let mut entity_commands = commands.entity(entity);
 
             entity_commands
                 .insert((
-                    Mass(10.0),
-                    Gravitable,
-                    Gravitator,
+                    Mass(selected_dynamic_config.mass),
                     LinearVelocity(dif),
-                    Collider::circle(10.0 as Scalar),
+                    Collider::circle(selected_dynamic_config.radius as Scalar),
                     RigidBody::Dynamic,
                 ))
+                .insert_if(Gravitable, || selected_dynamic_config.gravitable)
+                .insert_if(Gravitator, || selected_dynamic_config.gravitator)
                 .remove::<Selected>();
 
             if keys.pressed(KeyCode::ShiftLeft) {
@@ -473,30 +651,6 @@ fn reset_level(
 
         trigger_query.iter_mut().for_each(|ref mut x| x.reset());
     }
-}
-
-fn create_static(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    pos: Vec2,
-) {
-    commands.spawn((
-        Mesh2d(meshes.add(Circle::new(10.0))),
-        Transform {
-            translation: Vec3 {
-                x: pos.x,
-                y: pos.y,
-                ..default()
-            },
-            ..default()
-        },
-        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
-        Mass(10.0),
-        Gravitator,
-        Collider::circle(10.0 as Scalar),
-        RigidBody::Static,
-    ));
 }
 
 fn draw_velocity_arrows(
@@ -542,27 +696,23 @@ fn draw_grid(
     if debug_settings.show_grid {
         let (camera_transform, projection) = camera_query.single();
 
-        let mut scale = projection.scale;
+        let scale = projection.scale;
 
         let grid_settings = &debug_settings.grid_settings;
         let recursive_depth: f32 = grid_settings.recursive_depth as f32;
 
-        let scale_jumps_iter =
-            std::iter::successors(Some(0.00390625_f32), |x| Some(x * recursive_depth));
+        // This allows for the flooring of the linear scale at exponential rates
+        let floored_scaling = recursive_depth.powf(scale.log(recursive_depth).floor());
 
-        for scale_jump in scale_jumps_iter {
-            if scale_jump > scale {
-                scale = scale_jump;
-                break;
-            }
-        }
-
-        let grid_spacing = scale * grid_settings.cell_size;
+        // The space between every line of the grid
+        let grid_spacing = floored_scaling * grid_settings.cell_size;
 
         let camera_xy = camera_transform.translation.xy();
 
-        let closest_center = camera_xy - (camera_xy % (grid_spacing * recursive_depth));
+        // The point closest to the center while still being aligned to the grid
+        let closest_aligned_center = camera_xy - (camera_xy % (grid_spacing * recursive_depth));
 
+        // How many cells away from center to draw on x and y axis
         let x_width = grid_settings.grid_draw_dimensions.x;
         let y_width = grid_settings.grid_draw_dimensions.y;
 
@@ -574,8 +724,8 @@ fn draw_grid(
                 grid_settings.lower_color
             };
             gizmos.line_2d(
-                Vec2::new(line_x as f32, y_width * grid_spacing.y) + closest_center,
-                Vec2::new(line_x as f32, -y_width * grid_spacing.y) + closest_center,
+                Vec2::new(line_x as f32, y_width * grid_spacing.y) + closest_aligned_center,
+                Vec2::new(line_x as f32, -y_width * grid_spacing.y) + closest_aligned_center,
                 color,
             );
         }
@@ -590,21 +740,23 @@ fn draw_grid(
             };
 
             gizmos.line_2d(
-                Vec2::new(x_width * grid_spacing.x, line_y as f32) + closest_center,
-                Vec2::new(-x_width * grid_spacing.x, line_y as f32) + closest_center,
+                Vec2::new(x_width * grid_spacing.x, line_y as f32) + closest_aligned_center,
+                Vec2::new(-x_width * grid_spacing.x, line_y as f32) + closest_aligned_center,
                 color,
             );
         }
     }
 }
 
-fn simulation_setting(
+fn simulation_settings(
     mut contexts: EguiContexts,
     state: Res<GameState>,
     debug_settings: ResMut<DebugSettings>,
+    mut camera_query: Query<(&mut Transform, &mut CameraVelocity), With<GameCamera>>,
 ) {
     if *state == GameState::Editor {
         let mut debug_settings = debug_settings;
+        let mut camera = camera_query.single_mut();
 
         egui::Window::new("Editor Mode").show(contexts.ctx_mut(), |ui| {
             ui.checkbox(&mut debug_settings.show_grid, "Show grid");
@@ -614,11 +766,13 @@ fn simulation_setting(
             );
             ui.collapsing("Grid Settings", |ui| {
                 grid_settings_ui(ui, &mut debug_settings.grid_settings);
-            })
+            });
+            ui.collapsing("Camera Settings", |ui| {
+                camera_settings_ui(ui, &mut *camera.0, &mut *camera.1);
+            });
         });
     }
 }
-
 
 fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
     let mut lower_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.lower_color);
@@ -654,6 +808,27 @@ fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
 
     grid_settings.lower_color = egui_hsva_to_bevy_hsva(lower_egui_hsva);
     grid_settings.upper_color = egui_hsva_to_bevy_hsva(upper_egui_hsva);
+}
+
+fn camera_settings_ui(
+    ui: &mut egui::Ui,
+    camera_transform: &mut Transform,
+    camera_velocity: &mut CameraVelocity,
+) {
+    ui.label("Position");
+    ui.horizontal(|ui| {
+        ui.label("x");
+        ui.add(egui::DragValue::new(&mut camera_transform.translation.x));
+        ui.label("y");
+        ui.add(egui::DragValue::new(&mut camera_transform.translation.y));
+    });
+    ui.label("Velocity");
+    ui.horizontal(|ui| {
+        ui.label("x");
+        ui.add(egui::DragValue::new(&mut camera_velocity.x));
+        ui.label("y");
+        ui.add(egui::DragValue::new(&mut camera_velocity.y));
+    });
 }
 
 fn egui_hsva_to_bevy_hsva(hsva: egui::epaint::Hsva) -> Hsva {
