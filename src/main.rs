@@ -1,11 +1,12 @@
-use std::collections::VecDeque;
-
 use avian2d::{math::*, prelude::*};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_egui::{
-    EguiContexts, EguiPlugin,
-    egui::{self},
+    egui::{self}, EguiContexts, EguiPlugin
 };
+use level::{EntityType, LevelDescriptor};
+use std::{collections::VecDeque, path::PathBuf, str::FromStr};
+
+mod level;
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 const CAMERA_MOVE_SPEED: f32 = 10.0;
@@ -24,6 +25,17 @@ struct DebugSettings {
     show_grid: bool,
     show_velocity_arrows: bool,
     grid_settings: GridSettings,
+}
+
+#[derive(Event)]
+struct SaveEvent {
+    file: PathBuf,
+    level_name: String,
+}
+
+#[derive(Event)]
+struct LoadEvent {
+    file: PathBuf,
 }
 
 struct GridSettings {
@@ -226,10 +238,14 @@ fn main() {
                 draw_grid,
                 simulation_settings,
                 apply_camera_velocity,
+                save_level,
+                load_level,
             ),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
         .add_event::<CreateObject>()
+        .add_event::<SaveEvent>()
+        .add_event::<LoadEvent>()
         .run();
 }
 
@@ -238,6 +254,26 @@ fn setup(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    // Test stuff here
+
+    let level_descriptor = level::LevelDescriptor {
+        entities: vec![],
+        starting_position: Vec2::new(0.0, 0.0),
+        name: "LevelOne".to_string(),
+    };
+
+    level_descriptor
+        .save_to_file(std::path::PathBuf::from_str("test_levels/level").unwrap())
+        .expect("Failed to serialize!!!");
+
+    let other_level_descriptor = level::LevelDescriptor::load_from_file(
+        std::path::PathBuf::from_str("test_levels/level").unwrap(),
+    )
+    .expect("Idk this should work");
+
+    assert_eq!(level_descriptor, other_level_descriptor);
+    // No more testing down here
+
     commands.spawn((Camera2d, GameCamera, CameraVelocity(Vec2::ZERO)));
 
     commands.insert_resource(DebugSettings {
@@ -464,14 +500,24 @@ fn global_binds(
     mouse: Res<ButtonInput<MouseButton>>,
     mouse_pos: Res<MousePos>,
     keys: Res<ButtonInput<KeyCode>>,
-    mut events: EventWriter<CreateObject>,
+    mut object_events: EventWriter<CreateObject>,
+    mut save_events: EventWriter<SaveEvent>,
+    mut load_events: EventWriter<LoadEvent>,
 ) {
     if mouse.just_pressed(MouseButton::Right) {
-        events.send(CreateObject::new_static(10.0, mouse_pos.0, 10.0));
+        object_events.send(CreateObject::new_static(10.0, mouse_pos.0, 10.0));
     }
 
     if keys.just_pressed(KeyCode::KeyZ) {
-        events.send(CreateObject::new_trigger(mouse_pos.0));
+        object_events.send(CreateObject::new_trigger(mouse_pos.0));
+    }
+    
+    if keys.just_pressed(KeyCode::KeyP) {
+        save_events.send(SaveEvent { file: PathBuf::from_str("test_levels/level").unwrap(), level_name: "Interesting".to_string() });
+    }
+
+    if keys.just_pressed(KeyCode::KeyL) {
+        load_events.send(LoadEvent { file: PathBuf::from_str("test_levels/level").unwrap() });
     }
 }
 
@@ -604,6 +650,7 @@ fn release_selected(
 ) {
     if mouse_input.just_released(MouseButton::Left) {
         for (entity, transform, selected_dynamic_config) in selected_query.iter() {
+
             let dif = -(mouse_pos.0 - transform.translation.xy());
 
             let mut entity_commands = commands.entity(entity);
@@ -837,4 +884,53 @@ fn egui_hsva_to_bevy_hsva(hsva: egui::epaint::Hsva) -> Hsva {
 
 fn bevy_hsva_to_egui_hsva(hsva: Hsva) -> egui::epaint::Hsva {
     egui::epaint::Hsva::new(hsva.hue / 360.0, hsva.saturation, hsva.value, hsva.alpha)
+}
+
+fn save_level(
+    statics: Query<
+        (
+            &Transform,
+            &MeshMaterial2d<ColorMaterial>,
+            Option<&Gravitator>,
+            &Mass,
+        ),
+        Without<Gravitable>,
+    >,
+    materials: Res<Assets<ColorMaterial>>,
+    mut save_events: EventReader<SaveEvent>,
+) {
+    for save_event in save_events.read() {
+        let mut level_descriptor = LevelDescriptor::new(Vec2::ZERO, &save_event.level_name);
+
+        for (transform, color, gravitator, mass) in statics.iter() {
+
+            level_descriptor.add_entity(EntityType::new_static(
+                transform.translation.xy(),
+                mass.0,
+                gravitator.is_some(),
+                materials.get(color.id()).unwrap().color,
+            ));
+        }
+
+        level_descriptor.save_to_file(save_event.file.clone()).expect("Error handling might happen one day :3");
+    }
+}
+
+fn load_level(
+    mut load_events: EventReader<LoadEvent>,
+    mut object_events: EventWriter<CreateObject>,
+) {
+    for load_event in load_events.read() {
+        let level_descriptor = LevelDescriptor::load_from_file(load_event.file.clone()).unwrap();
+
+        for entity in level_descriptor.entities {
+            match entity {
+                EntityType::StaticObject { position, mass, gravitator: _, color: _} => {
+                    object_events.send(CreateObject::new_static(mass, position, 10.0));
+                    // Ye there are definently some incompatabilities, these types should be very similar
+                },
+                EntityType::Trigger { position: _ } => todo!(),
+            }
+        }
+    }
 }
