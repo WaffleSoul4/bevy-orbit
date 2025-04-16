@@ -1,11 +1,14 @@
 use avian2d::{math::*, prelude::*};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_egui::{
-    egui::{self}, EguiContexts, EguiPlugin
+    EguiContexts, EguiPlugin,
+    egui::{self},
 };
+use gravity::GravityLayers;
 use level::{EntityType, LevelDescriptor};
 use std::{collections::VecDeque, path::PathBuf, str::FromStr};
 
+mod gravity;
 mod level;
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
@@ -175,10 +178,19 @@ impl Trigger {
 }
 
 #[derive(PhysicsLayer, Default)]
-enum Layer {
+enum GameLayer {
     #[default]
     Main,
     Triggers,
+}
+
+// I guess I'll re-use the [PhysicsLayer] trait instead of
+// copy pasting more code
+#[derive(PhysicsLayer, Default, Copy, Clone)]
+enum GravityLayer {
+    #[default]
+    Main,
+    Static,
 }
 
 #[derive(Resource, Debug)]
@@ -195,7 +207,6 @@ impl Default for PastMouseMotions {
 }
 
 // I had some errors with LinearVelocity, so this will do until I'm not lazy
-// (Why on earth does vscode think this comment is an error)
 #[derive(Component, Deref, DerefMut)]
 struct CameraVelocity(Vec2);
 
@@ -254,26 +265,6 @@ fn setup(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    // Test stuff here
-
-    let level_descriptor = level::LevelDescriptor {
-        entities: vec![],
-        starting_position: Vec2::new(0.0, 0.0),
-        name: "LevelOne".to_string(),
-    };
-
-    level_descriptor
-        .save_to_file(std::path::PathBuf::from_str("test_levels/level").unwrap())
-        .expect("Failed to serialize!!!");
-
-    let other_level_descriptor = level::LevelDescriptor::load_from_file(
-        std::path::PathBuf::from_str("test_levels/level").unwrap(),
-    )
-    .expect("Idk this should work");
-
-    assert_eq!(level_descriptor, other_level_descriptor);
-    // No more testing down here
-
     commands.spawn((Camera2d, GameCamera, CameraVelocity(Vec2::ZERO)));
 
     commands.insert_resource(DebugSettings {
@@ -300,28 +291,45 @@ fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState
 }
 
 fn apply_gravity(
-    gravitator: Query<(&Mass, &Transform), With<Gravitator>>,
-    mut gravitated: Query<(&Mass, &Transform, &mut LinearVelocity), With<Gravitable>>,
+    gravitator: Query<(&Mass, &Transform, Option<&GravityLayers>), With<Gravitator>>,
+    mut gravitated: Query<
+        (
+            &Mass,
+            &Transform,
+            &mut LinearVelocity,
+            Option<&GravityLayers>,
+        ),
+        With<Gravitable>,
+    >,
     time: Res<Time>,
 ) {
-    for (mass, transform) in &gravitator {
-        for (gravitee_mass, gravitee_transform, mut velocity) in &mut gravitated {
-            let diff_vector = transform.translation.xy() - gravitee_transform.translation.xy();
+    for (mass, transform, gravity_layers) in &gravitator {
+        for (gravitated_mass, gravitated_transform, mut velocity, gravitated_gravity_layers) in
+            &mut gravitated
+        {
+            let default_gravity_layer = GravityLayers::default();
+            let gravitator_layers = gravity_layers.unwrap_or(&default_gravity_layer);
+            let gravitated_layers = gravitated_gravity_layers.unwrap_or(&default_gravity_layer);
 
-            let dist = diff_vector.length();
+            if gravitator_layers.interacts_with(*gravitated_layers) {
+                let diff_vector =
+                    transform.translation.xy() - gravitated_transform.translation.xy();
 
-            // This is still necessary for some reason
-            // It throws quite the ambigous error when not included
-            // Something along the lines of:
-            // "The given sine and cosine produce an invalid rotation"
-            // Probably has to do with normalization, might look into it
+                let dist = diff_vector.length();
 
-            if dist > 0.01 {
-                velocity.0 += diff_vector.normalize()
-                    * (gravitee_mass.0 * mass.0 / dist.powi(2))
-                    * 10000.0
-                    * GRAVITATIONAL_CONSTANT
-                    * time.delta_secs()
+                // This is still necessary for some reason
+                // It throws quite the ambigous error when not included
+                // Something along the lines of:
+                // "The given sine and cosine produce an invalid rotation"
+                // Probably has to do with normalization, might look into it
+
+                if dist > 0.01 {
+                    velocity.0 += diff_vector.normalize()
+                        * (gravitated_mass.0 * mass.0 / dist.powi(2))
+                        * 10000.0
+                        * GRAVITATIONAL_CONSTANT
+                        * time.delta_secs()
+                }
             }
         }
     }
@@ -511,13 +519,18 @@ fn global_binds(
     if keys.just_pressed(KeyCode::KeyZ) {
         object_events.send(CreateObject::new_trigger(mouse_pos.0));
     }
-    
+
     if keys.just_pressed(KeyCode::KeyP) {
-        save_events.send(SaveEvent { file: PathBuf::from_str("test_levels/level").unwrap(), level_name: "Interesting".to_string() });
+        save_events.send(SaveEvent {
+            file: PathBuf::from_str("test_levels/level").unwrap(),
+            level_name: "Interesting".to_string(),
+        });
     }
 
     if keys.just_pressed(KeyCode::KeyL) {
-        load_events.send(LoadEvent { file: PathBuf::from_str("test_levels/level").unwrap() });
+        load_events.send(LoadEvent {
+            file: PathBuf::from_str("test_levels/level").unwrap(),
+        });
     }
 }
 
@@ -556,6 +569,7 @@ fn create_objects(
                     Gravitator,
                     Collider::circle(*radius as Scalar),
                     RigidBody::Static,
+                    GravityLayers::new(GravityLayer::Static, [GameLayer::Main]),
                 ));
             }
             CreateObject::Dynamic {
@@ -582,7 +596,7 @@ fn create_objects(
                     MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
                     Trigger::new(false),
                     Collider::circle(10.0),
-                    CollisionLayers::new(Layer::Triggers, [Layer::Main]),
+                    CollisionLayers::new(GameLayer::Triggers, [GameLayer::Main]),
                 ));
             }
         }
@@ -650,7 +664,6 @@ fn release_selected(
 ) {
     if mouse_input.just_released(MouseButton::Left) {
         for (entity, transform, selected_dynamic_config) in selected_query.iter() {
-
             let dif = -(mouse_pos.0 - transform.translation.xy());
 
             let mut entity_commands = commands.entity(entity);
@@ -903,7 +916,6 @@ fn save_level(
         let mut level_descriptor = LevelDescriptor::new(Vec2::ZERO, &save_event.level_name);
 
         for (transform, color, gravitator, mass) in statics.iter() {
-
             level_descriptor.add_entity(EntityType::new_static(
                 transform.translation.xy(),
                 mass.0,
@@ -912,7 +924,9 @@ fn save_level(
             ));
         }
 
-        level_descriptor.save_to_file(save_event.file.clone()).expect("Error handling might happen one day :3");
+        level_descriptor
+            .save_to_file(save_event.file.clone())
+            .expect("Error handling might happen one day :3");
     }
 }
 
@@ -925,10 +939,15 @@ fn load_level(
 
         for entity in level_descriptor.entities {
             match entity {
-                EntityType::StaticObject { position, mass, gravitator: _, color: _} => {
+                EntityType::StaticObject {
+                    position,
+                    mass,
+                    gravitator: _,
+                    color: _,
+                } => {
                     object_events.send(CreateObject::new_static(mass, position, 10.0));
                     // Ye there are definently some incompatabilities, these types should be very similar
-                },
+                }
                 EntityType::Trigger { position: _ } => todo!(),
             }
         }
