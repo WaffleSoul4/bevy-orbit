@@ -23,7 +23,7 @@ impl Plugin for DebugPlugin {
         app.insert_resource(DebugSettings::default()).add_systems(
             Update,
             (
-                draw_grid.run_if(|settings: Res<DebugSettings>| settings.show_grid),
+                draw_grid.run_if(|settings: Res<DebugSettings>| settings.grid_settings.show_grid),
                 draw_velocity_arrows
                     .run_if(|settings: Res<DebugSettings>| settings.show_velocity_arrows),
                 debug_ui.run_if(|settings: Res<DebugSettings>| settings.show_ui),
@@ -33,6 +33,8 @@ impl Plugin for DebugPlugin {
 }
 
 struct GridSettings {
+    // Whether to show the grid or not
+    show_grid: bool,
     // The size of each cell
     cell_size: Vec2,
     // How many cells to draw on x and y axis
@@ -48,6 +50,7 @@ struct GridSettings {
 impl Default for GridSettings {
     fn default() -> Self {
         GridSettings {
+            show_grid: false,
             cell_size: Vec2::new(64.0, 64.0),
             grid_draw_dimensions: Vec2::new(20.0, 16.0),
             recursive_depth: 2,
@@ -60,7 +63,6 @@ impl Default for GridSettings {
 #[derive(Resource)]
 pub struct DebugSettings {
     pub show_ui: bool,
-    show_grid: bool,
     show_velocity_arrows: bool,
     grid_settings: GridSettings,
 }
@@ -68,8 +70,7 @@ pub struct DebugSettings {
 impl Default for DebugSettings {
     fn default() -> Self {
         DebugSettings {
-            show_ui: true,
-            show_grid: false,
+            show_ui: false,
             show_velocity_arrows: false,
             grid_settings: GridSettings::default(),
         }
@@ -77,12 +78,8 @@ impl Default for DebugSettings {
 }
 
 impl DebugSettings {
-    pub fn show_ui(&mut self) {
-        self.show_ui = true;
-    }
-
-    pub fn hide_ui(&mut self) {
-        self.show_ui = false;
+    pub fn toggle_ui(&mut self) {
+        self.show_ui = !self.show_ui;
     }
 }
 
@@ -95,8 +92,8 @@ pub fn debug_ui(
 
     let mut camera = camera_query.single_mut();
 
-    egui::Window::new("Editor Mode").show(contexts.ctx_mut(), |ui| {
-        ui.checkbox(&mut debug_settings.show_grid, "Show grid");
+    egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
+        ui.checkbox(&mut debug_settings.grid_settings.show_grid, "Show grid");
         ui.checkbox(
             &mut debug_settings.show_velocity_arrows,
             "Show velocity arrows",
@@ -193,7 +190,7 @@ pub fn draw_velocity_arrows(
 
     // Draw arrows for objects that are currently [Selected]
     selected_object_query.iter().for_each(|transform| {
-        let dif = transform.translation.xy() - mouse_pos.0;
+        let dif = transform.translation.xy() - mouse_pos.unwrap_or_default();
 
         gizmos.arrow_2d(
             transform.translation.xy(),

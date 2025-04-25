@@ -1,7 +1,9 @@
 use avian2d::{math::*, prelude::*};
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy::{
+    input::{common_conditions::input_just_pressed, mouse::MouseMotion}, prelude::*, render::camera::Viewport
+};
 use bevy_egui::EguiPlugin;
-use debug::DebugPlugin;
+use debug::{DebugPlugin, DebugSettings};
 use editor::{CreateObject, LoadEvent, SaveEvent, SelectedDynamicConfig};
 use gravity::{Gravitable, Gravitator, GravityLayer, GravityLayers};
 use std::{collections::VecDeque, path::PathBuf, str::FromStr};
@@ -14,7 +16,13 @@ mod level;
 const CAMERA_MOVE_SPEED: f32 = 10.0;
 
 #[derive(Resource, Deref)]
-struct MousePos(Vec2);
+struct MousePos(Option<Vec2>);
+
+impl From<Option<Vec2>> for MousePos {
+    fn from(value: Option<Vec2>) -> Self {
+        MousePos(value)
+    }
+}
 
 #[derive(Component)]
 struct Selected;
@@ -95,7 +103,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                /*move_camera_around_main_object,*/ release_selected,
+                release_selected,
                 game_binds,
             )
                 .run_if(|state: Res<GameState>| *state == GameState::Play),
@@ -105,17 +113,23 @@ fn main() {
             (
                 gravity::apply_gravity,
                 create_objects,
-                mouse_tracker_sys,
-                global_binds,
+                get_cursor_position.pipe(update_resource::<Option<Vec2>, MousePos>),
+                (global_binds, zoom_camera, pan_camera_mouse)
+                    .run_if(resource_is_some::<_, MousePos>),
                 toggle_gamestate,
                 update_triggers,
                 pan_camera_keys,
-                zoom_camera,
-                pan_camera_mouse,
                 apply_camera_velocity,
+                editor::side_menu.run_if(|state: Res<GameState>| *state == GameState::Editor),
                 editor::save_level,
                 editor::load_level,
+                restore_viewport.run_if(resource_changed::<GameState>),
             ),
+        )
+        .add_systems(
+            Update,
+            (|mut settings: ResMut<DebugSettings>| settings.toggle_ui() )
+                .run_if(input_just_pressed(KeyCode::KeyL)),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
         .add_event::<CreateObject>()
@@ -132,13 +146,22 @@ fn setup(
     // Spawn your average camera
     commands.spawn((Camera2d, GameCamera, CameraVelocity(Vec2::ZERO)));
 
-    commands.insert_resource(MousePos(Vec2::ZERO));
-    commands.insert_resource(GameState::Editor);
+    commands.insert_resource(MousePos(None));
+    commands.insert_resource(GameState::Play);
+
 
     commands.insert_resource(PastMouseMotions::default());
 
     // Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
+}
+
+fn restore_viewport(mut camera: Single<&mut Camera, With<GameCamera>>, window: Single<&Window>) {
+    camera.viewport = Some(Viewport {
+        physical_position: UVec2::ZERO,
+        physical_size: window.physical_size(),
+        ..default()
+    })
 }
 
 fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState>) {
@@ -148,62 +171,6 @@ fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState
             GameState::Play => GameState::Editor,
         }
     }
-}
-
-// Needs fixing
-fn move_camera_around_main_object(
-    state: Res<GameState>,
-    main_object_query: Query<&Transform, (Without<GameCamera>, With<CameraTrackable>)>,
-    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
-    window_query: Query<&Window, Without<GameCamera>>,
-) {
-    if main_object_query.iter().count() != 0 && *state == GameState::Play {
-        let main_object_translation = main_object_query
-            .get_single()
-            .expect("Multiple main objects detected")
-            .translation;
-
-        let (mut camera_transform, camera_projection) = camera_query
-            .get_single_mut()
-            .expect("Multiple game cameras detected");
-
-        let window = window_query
-            .get_single()
-            .expect("Multiple windows detected");
-
-        let window_bounding_box = bevy::math::bounding::Aabb2d::new(
-            camera_transform.translation.xy(),
-            Vec2::new(window.width() * 0.4, window.height() * 0.4),
-        );
-
-        let closest_point = window_bounding_box.closest_point(main_object_translation.xy());
-
-        if closest_point == main_object_translation.xy() {
-            // In the bounding box
-
-            let dist_between = camera_transform.translation.xy() - closest_point;
-
-            // Move 1/60th of the distance towards the obj
-
-            update_xy(
-                &mut camera_transform.translation,
-                (-dist_between / 60.0) / camera_projection.scale,
-            );
-        } else {
-            // Outside of bounding box
-
-            let dist_between = -closest_point + main_object_translation.xy();
-
-            // Instantly move to the closest point
-
-            update_xy(&mut camera_transform.translation, dist_between);
-        }
-    }
-}
-
-fn update_xy(vec: &mut Vec3, xy: Vec2) {
-    vec.x += xy.x;
-    vec.y += xy.y;
 }
 
 fn pan_camera_keys(
@@ -254,7 +221,7 @@ fn zoom_camera(
                     projection.scale /= 1.1;
                 }
 
-                let dif_vec = -transform.translation + Vec3::new(mouse_pos.0.x, mouse_pos.0.y, 0.0); // * zoom_modifier;
+                let dif_vec = -transform.translation + mouse_pos.unwrap_or(Vec2::ZERO).extend(0.0); // * zoom_modifier;
 
                 transform.translation += (dif_vec / 10.0) * zoom_modifier;
             }
@@ -304,20 +271,37 @@ fn update_triggers(
         });
 }
 
-fn mouse_tracker_sys(
-    windows: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    mut mouse_pos: ResMut<MousePos>,
-) {
-    let window = windows.single();
-    let (camera, camera_transform) = camera_query.single();
+fn get_cursor_position(
+    window: Single<&Window>,
+    camera_query: Single<(&Camera, &GlobalTransform)>,
+) -> Option<Vec2> {
+    let (camera, camera_transform) = camera_query.into_inner();
 
-    if let Some(world_position) = window
-        .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
-    {
-        *mouse_pos = MousePos(Vec2::new(world_position.x, world_position.y))
-    }
+    window.cursor_position().and_then(|cursor| {
+        let viewport_rect = camera.logical_viewport_rect()?;
+
+        if viewport_rect.contains(cursor) {
+            return camera
+                .viewport_to_world_2d(camera_transform, cursor - viewport_rect.min)
+                .ok();
+        }
+
+        return None;
+    })
+}
+
+// This makes me feel like a real programmer
+fn update_resource<Input, Resource: bevy::prelude::Resource + From<Input>>(
+    In(value): In<Input>,
+    mut resource: ResMut<Resource>,
+) {
+    *resource = Resource::from(value)
+}
+
+fn resource_is_some<T, Resource: bevy::prelude::Resource + std::ops::Deref<Target = Option<T>>>(
+    resource: Res<Resource>,
+) -> bool {
+    resource.into_inner().is_some()
 }
 
 fn global_binds(
@@ -329,11 +313,15 @@ fn global_binds(
     mut load_events: EventWriter<LoadEvent>,
 ) {
     if mouse.just_pressed(MouseButton::Right) {
-        object_events.send(CreateObject::new_static(5.0, mouse_pos.0, 10.0));
+        object_events.send(CreateObject::new_static(
+            5.0,
+            mouse_pos.unwrap_or_default(),
+            10.0,
+        ));
     }
 
     if keys.just_pressed(KeyCode::KeyZ) {
-        object_events.send(CreateObject::new_trigger(mouse_pos.0));
+        object_events.send(CreateObject::new_trigger(mouse_pos.unwrap_or_default()));
     }
 
     if keys.just_pressed(KeyCode::KeyJ) {
@@ -357,7 +345,9 @@ fn game_binds(
     mut events: EventWriter<CreateObject>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
-        events.send(*CreateObject::new_dynamic(5.0, mouse_pos.0, 10.0).set_selected());
+        events.send(
+            *CreateObject::new_dynamic(5.0, mouse_pos.unwrap_or_default(), 10.0).set_selected(),
+        );
     }
 }
 
@@ -446,10 +436,7 @@ fn pan_camera_mouse(
             past_mouse_motions.0.push_back(corrected_mouse_motion);
             past_mouse_motions.0.pop_front();
 
-            update_xy(
-                &mut camera_transform.translation,
-                corrected_mouse_motion * projection.scale,
-            );
+            camera_transform.translation = (camera_transform.translation.xy() + corrected_mouse_motion * projection.scale).extend(camera_transform.translation.z);
             mouse_move_counter += mouse_motion.delta;
         }
     }
@@ -482,7 +469,7 @@ fn release_selected(
 ) {
     if mouse_input.just_released(MouseButton::Left) {
         for (entity, transform, selected_dynamic_config) in selected_query.iter() {
-            let dif = -(mouse_pos.0 - transform.translation.xy());
+            let dif = transform.translation.xy() - mouse_pos.unwrap_or_default();
 
             let mut entity_commands = commands.entity(entity);
 

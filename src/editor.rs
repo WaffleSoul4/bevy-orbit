@@ -1,11 +1,10 @@
 use crate::{
-    StaticObject,
-    gravity::Gravitator,
-    level::{EntityType, LevelDescriptor},
+    gravity::Gravitator, level::{EntityType, LevelDescriptor}, GameCamera, StaticObject
 };
 use avian2d::prelude::Mass;
 use bevy::prelude::*;
-use std::path::PathBuf;
+use bevy_egui::{egui::{self}, EguiContexts};
+use std::{ops::Mul, path::PathBuf};
 
 #[derive(Event)]
 pub struct SaveEvent {
@@ -33,6 +32,11 @@ impl LoadEvent {
     }
 }
 
+ // I'm going to wait until avian and bevy egui have 0.16 support
+ // because Serializing right now is much less fun.
+#[derive(Component)]
+struct GameSerializable;
+
 // Basically I want to be able to store data ([Gravitable], [Gravitator])
 // but not actually have them enabled
 // This is a mediocre solution
@@ -55,6 +59,8 @@ impl SelectedDynamicConfig {
         }
     }
 }
+
+
 
 #[derive(Event, Clone, Copy)]
 pub enum CreateObject {
@@ -166,4 +172,54 @@ pub fn load_level(
             }
         }
     }
+}
+
+pub fn side_menu(
+    mut contexts: EguiContexts,
+    window: Single<&Window>,
+    mut camera: Single<&mut Camera, With<GameCamera>>,
+    mut load_events: EventWriter<LoadEvent>,
+    mut save_events: EventWriter<SaveEvent>,
+) {
+    let contexts = contexts.ctx_mut();
+
+    let ui_width = egui::SidePanel::left("Editor Panel")
+        .resizable(true)
+        .show(contexts, |ui| {
+            ui.label("This will be where the editor is!");
+            ui.horizontal(|ui| {
+                if ui.button("Save level").clicked() {
+                    save_events.send(SaveEvent::new(
+                        PathBuf::from("test_levels/level2"),
+                        "Abcdefg",
+                    ));
+                }
+                if ui.button("Load level").clicked() {
+                    load_events.send(LoadEvent::new(
+                        PathBuf::from("test_levels/level2"),
+                    ));
+                }
+            });
+
+            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+        })
+        .response
+        .rect
+        .width()
+        .mul(window.scale_factor())
+        .round() as u32;
+
+    // Spent a long time here
+    // I pulled this ui code from the examples, and just expected
+    // it to work. It does work... sort of. The rect seems to be provided
+    // in logical pixels, not physical pixels.
+
+    // Edit: I just found the part in the code where they multiply by
+    // logical pixels, so I'm going to learn how to read properly 3:
+
+    camera.viewport = Some(bevy::render::camera::Viewport {
+        physical_position: UVec2::new(ui_width, 0),
+        physical_size: UVec2::new(window.physical_width() - ui_width, window.physical_height()),
+        ..default()
+    });
 }
