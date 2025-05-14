@@ -96,7 +96,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             PhysicsPlugins::default(),
-            EguiPlugin,
+            EguiPlugin {enable_multipass_for_primary_context: false },
             DebugPlugin,
         ))
         .add_systems(Startup, setup)
@@ -174,12 +174,17 @@ fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState
 }
 
 fn pan_camera_keys(
-    mut camera_query: Query<(&mut Transform, &OrthographicProjection), With<GameCamera>>,
+    camera_query: Single<(&mut Transform, &Projection), With<GameCamera>>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
     use KeyCode::*;
 
-    let (mut transform, projection) = camera_query.single_mut();
+    let (mut transform, projection) = camera_query.into_inner();
+
+    let projection = match projection {
+        Projection::Orthographic(orthographic_projection) => orthographic_projection,
+        _ => panic!("Invalid projection type found")
+    };
 
     let camera_movement_speed = CAMERA_MOVE_SPEED * projection.scale;
 
@@ -201,13 +206,18 @@ fn pan_camera_keys(
 }
 
 fn zoom_camera(
-    mut camera_query: Query<(&mut OrthographicProjection, &mut Transform), With<GameCamera>>,
+    camera_query: Single<(&mut Projection, &mut Transform), With<GameCamera>>,
     mut scroll_events: EventReader<bevy::input::mouse::MouseWheel>,
     mouse_pos: Res<MousePos>,
 ) {
     use bevy::input::mouse::MouseScrollUnit;
 
-    let (mut projection, mut transform) = camera_query.single_mut();
+    let (mut projection, mut transform) = camera_query.into_inner();
+
+    let projection = match projection.as_mut() {
+        Projection::Orthographic(orthographic_projection) => orthographic_projection,
+        _ => panic!("Invalid camera projection type found")
+    };
 
     for event in scroll_events.read() {
         let mut zoom_modifier = 1.0;
@@ -238,7 +248,7 @@ fn zoom_camera(
 
 fn update_triggers(
     mut trigger_query: Query<(Entity, &mut Trigger, &Transform), With<Collider>>,
-    collisions: Res<Collisions>,
+    collisions: Collisions,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -248,7 +258,7 @@ fn update_triggers(
         .filter(|x| {
             collisions
                 .iter()
-                .any(|y| y.entity1 == x.0 || y.entity2 == x.0) // Check if the trigger is among the collisions
+                .any(|y| y.collider1 == x.0 || y.collider2 == x.0) // Check if the trigger is among the collisions
         })
         .for_each(|(_, ref mut t, transform)| {
             if !t.state {
@@ -282,7 +292,7 @@ fn get_cursor_position(
 
         if viewport_rect.contains(cursor) {
             return camera
-                .viewport_to_world_2d(camera_transform, cursor - viewport_rect.min)
+                .viewport_to_world_2d(camera_transform, cursor)
                 .ok();
         }
 
@@ -313,7 +323,7 @@ fn global_binds(
     mut load_events: EventWriter<LoadEvent>,
 ) {
     if mouse.just_pressed(MouseButton::Right) {
-        object_events.send(CreateObject::new_static(
+        object_events.write(CreateObject::new_static(
             5.0,
             mouse_pos.unwrap_or_default(),
             10.0,
@@ -321,18 +331,18 @@ fn global_binds(
     }
 
     if keys.just_pressed(KeyCode::KeyZ) {
-        object_events.send(CreateObject::new_trigger(mouse_pos.unwrap_or_default()));
+        object_events.write(CreateObject::new_trigger(mouse_pos.unwrap_or_default()));
     }
 
     if keys.just_pressed(KeyCode::KeyJ) {
-        save_events.send(SaveEvent::new(
+        save_events.write(SaveEvent::new(
             PathBuf::from_str("test_levels/level").unwrap(),
             "Interesting",
         ));
     }
 
     if keys.just_pressed(KeyCode::KeyK) {
-        load_events.send(LoadEvent::new(
+        load_events.write(LoadEvent::new(
             PathBuf::from_str("test_levels/level").unwrap(),
         ));
     }
@@ -345,7 +355,7 @@ fn game_binds(
     mut events: EventWriter<CreateObject>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
-        events.send(
+        events.write(
             *CreateObject::new_dynamic(5.0, mouse_pos.unwrap_or_default(), 10.0).set_selected(),
         );
     }
@@ -416,8 +426,8 @@ fn pan_camera_mouse(
     keys: Res<ButtonInput<KeyCode>>,
     mut past_mouse_motions: ResMut<PastMouseMotions>,
     mut mouse_motion_reader: EventReader<MouseMotion>,
-    mut camera_query: Query<
-        (&mut Transform, &OrthographicProjection, &mut CameraVelocity),
+    camera_query: Single<
+        (&mut Transform, &Projection, &mut CameraVelocity),
         With<GameCamera>,
     >,
 ) {
@@ -425,7 +435,12 @@ fn pan_camera_mouse(
         *past_mouse_motions = PastMouseMotions::default();
     }
 
-    let (mut camera_transform, projection, mut velocity) = camera_query.single_mut();
+    let (mut camera_transform, projection, mut velocity) = camera_query.into_inner();
+
+    let projection = match projection {
+        Projection::Orthographic(orthographic_projection) => orthographic_projection,
+        _ => panic!("Invalid camera projection type found")
+    };
 
     let mut mouse_move_counter = Vec2::ZERO;
 
@@ -453,9 +468,9 @@ fn pan_camera_mouse(
 }
 
 fn apply_camera_velocity(
-    mut camera_query: Query<(&mut Transform, &CameraVelocity), With<GameCamera>>,
+    camera_query: Single<(&mut Transform, &CameraVelocity), With<GameCamera>>,
 ) {
-    let (mut transform, velocity) = camera_query.single_mut();
+    let (mut transform, velocity) = camera_query.into_inner();
 
     transform.translation += Vec3::new(velocity.x, velocity.y, 0.0);
 }

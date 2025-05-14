@@ -2,7 +2,7 @@ use crate::{CameraVelocity, GameCamera, MousePos, Selected};
 use avian2d::prelude::LinearVelocity;
 use bevy::prelude::*;
 use bevy_egui::{
-    EguiContexts, EguiPlugin,
+    EguiContexts,
     egui::{self},
 };
 
@@ -16,10 +16,6 @@ impl Default for DebugPlugin {
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<EguiPlugin>() {
-            app.add_plugins(EguiPlugin);
-        }
-
         app.insert_resource(DebugSettings::default()).add_systems(
             Update,
             (
@@ -86,11 +82,11 @@ impl DebugSettings {
 pub fn debug_ui(
     mut contexts: EguiContexts,
     debug_settings: ResMut<DebugSettings>,
-    mut camera_query: Query<(&mut Transform, &mut CameraVelocity), With<GameCamera>>,
+    camera_query: Single<(&mut Transform, &mut CameraVelocity), With<GameCamera>>,
 ) {
     let mut debug_settings = debug_settings;
 
-    let mut camera = camera_query.single_mut();
+    let mut camera = camera_query.into_inner();
 
     egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
         ui.checkbox(&mut debug_settings.grid_settings.show_grid, "Show grid");
@@ -203,9 +199,14 @@ pub fn draw_velocity_arrows(
 pub fn draw_grid(
     mut gizmos: Gizmos,
     debug_settings: Res<DebugSettings>,
-    camera_query: Query<(&Transform, &OrthographicProjection), With<GameCamera>>,
+    camera_query: Single<(&Transform, &Projection), With<GameCamera>>,
 ) {
-    let (camera_transform, projection) = camera_query.single();
+    let (camera_transform, projection) = camera_query.into_inner();
+
+    let projection = match projection {
+        Projection::Orthographic(orthographic_projection) => orthographic_projection,
+        _ => panic!("Invalid projection type found")
+    };
 
     let scale = projection.scale;
 

@@ -165,7 +165,7 @@ pub fn load_level(
                     gravitator: _,
                     color: _,
                 } => {
-                    object_events.send(CreateObject::new_static(mass, position, 10.0));
+                    object_events.write(CreateObject::new_static(mass, position, 10.0));
                     // Ye there are definently some incompatabilities, these types should be very similar
                 }
                 EntityType::Trigger { position: _ } => todo!(),
@@ -189,13 +189,13 @@ pub fn side_menu(
             ui.label("This will be where the editor is!");
             ui.horizontal(|ui| {
                 if ui.button("Save level").clicked() {
-                    save_events.send(SaveEvent::new(
+                    save_events.write(SaveEvent::new(
                         PathBuf::from("test_levels/level2"),
                         "Abcdefg",
                     ));
                 }
                 if ui.button("Load level").clicked() {
-                    load_events.send(LoadEvent::new(
+                    load_events.write(LoadEvent::new(
                         PathBuf::from("test_levels/level2"),
                     ));
                 }
