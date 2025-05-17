@@ -1,4 +1,3 @@
-use crate::{CameraVelocity, GameCamera, MousePos, Selected};
 use avian2d::prelude::LinearVelocity;
 use bevy::prelude::*;
 use bevy_egui::{
@@ -66,7 +65,7 @@ pub struct DebugSettings {
 impl Default for DebugSettings {
     fn default() -> Self {
         DebugSettings {
-            show_ui: false,
+            show_ui: true,
             show_velocity_arrows: false,
             grid_settings: GridSettings::default(),
         }
@@ -79,10 +78,17 @@ impl DebugSettings {
     }
 }
 
+pub fn toggle_debug_ui(mut settings: ResMut<DebugSettings>) {
+    settings.toggle_ui();
+}
+
 pub fn debug_ui(
     mut contexts: EguiContexts,
     debug_settings: ResMut<DebugSettings>,
-    camera_query: Single<(&mut Transform, &mut CameraVelocity), With<GameCamera>>,
+    camera_query: Single<
+        (&mut Transform, &mut crate::camera::CameraVelocity),
+        With<crate::camera::GameCamera>,
+    >,
 ) {
     let mut debug_settings = debug_settings;
 
@@ -142,7 +148,7 @@ fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
 fn camera_settings_ui(
     ui: &mut egui::Ui,
     camera_transform: &mut Transform,
-    camera_velocity: &mut crate::CameraVelocity,
+    camera_velocity: &mut crate::camera::CameraVelocity,
 ) {
     ui.label("Position");
     ui.horizontal(|ui| {
@@ -170,9 +176,9 @@ fn bevy_hsva_to_egui_hsva(hsva: Hsva) -> egui::epaint::Hsva {
 
 pub fn draw_velocity_arrows(
     mut gizmos: Gizmos,
-    mouse_pos: Res<MousePos>,
+    mouse_pos: Res<crate::cursor::CursorPosition>,
     dynamic_object_query: Query<(&LinearVelocity, &Transform), With<Mesh2d>>,
-    selected_object_query: Query<&Transform, With<Selected>>,
+    selected_object_query: Query<&Transform, With<crate::Selected>>,
 ) {
     dynamic_object_query
         .iter()
@@ -199,7 +205,7 @@ pub fn draw_velocity_arrows(
 pub fn draw_grid(
     mut gizmos: Gizmos,
     debug_settings: Res<DebugSettings>,
-    camera_query: Single<(&Transform, &Projection), With<GameCamera>>,
+    camera_query: Single<(&Transform, &Projection), With<crate::camera::GameCamera>>,
 ) {
     let (camera_transform, projection) = camera_query.into_inner();
 

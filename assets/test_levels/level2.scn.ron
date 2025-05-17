@@ -4,58 +4,1309 @@
     4294967320: (
       components: {
         "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
         "bevy_orbit::StaticObject": (),
         "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
         "bevy_transform::components::transform::Transform": (
-          translation: (-141.59999, -181.79999, 0.0),
+          translation: (217.20003, 173.40002, 0.0),
           rotation: (0.0, 0.0, -0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    4294967338: (
+    4294967337: (
       components: {
         "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
         "bevy_orbit::StaticObject": (),
         "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
         "bevy_transform::components::transform::Transform": (
-          translation: (-89.39996, 4.7999964, 0.0),
+          translation: (-172.20001, 75.00004, 0.0),
           rotation: (0.0, 0.0, -0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    4294967363: (
+    4294967356: (
       components: {
         "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
         "bevy_orbit::StaticObject": (),
         "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
         "bevy_transform::components::transform::Transform": (
-          translation: (455.40012, -61.19999, 0.0),
+          translation: (-29.399977, -91.79998, 0.0),
           rotation: (0.0, 0.0, -0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    4294967421: (
+    4294967390: (
       components: {
         "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
         "bevy_orbit::StaticObject": (),
         "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
         "bevy_transform::components::transform::Transform": (
-          translation: (286.80008, -122.99999, 0.0),
+          translation: (281.4001, -196.20001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967783: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (21.000002, 79.20001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967844: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-68.99998, 43.200043, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967911: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-158.39998, -48.0, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967982: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-222.0, -64.79999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968071: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-307.2, 109.20003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968171: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-285.0, 147.00005, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968422: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-203.4, 225.00003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968555: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-367.2, 179.40002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968712: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-430.20004, 81.60001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294968856: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-380.40002, 5.4000144, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294969025: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-259.2, -164.40002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294969191: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-116.39997, -196.20001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294969368: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (60.60007, -185.40002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294969590: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (175.20003, -56.399994, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294969771: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (411.60007, 11.99999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294970019: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (423.00012, 93.6, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294970220: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (316.20007, 85.20004, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294970473: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (244.8001, 28.800014, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294970694: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (144.0, 90.60002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294970948: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (112.80003, 33.60001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294971237: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (99.00004, -22.799982, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294971488: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (112.80003, -105.60003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294971775: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (139.20006, -114.600006, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294972046: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (198.00002, -139.2, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294972411: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (156.00002, -208.2, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294972789: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (97.80007, -211.20003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294973210: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-6.0000057, -211.20003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294973490: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-113.99997, -175.79999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294973843: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-91.8, -111.00001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294974240: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-146.99998, -117.60002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294974581: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-174.6, -168.00002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294975317: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-274.2, -177.00003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294975678: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-376.2, -103.80001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294976086: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-318.00003, -35.39999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294976581: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-248.40002, 18.000023, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294977089: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-203.4, 79.20001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294977530: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-178.20001, 126.60003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294978023: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (113.400055, 166.20004, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294978528: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (109.80009, 214.80002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294978959: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (76.80007, 231.00006, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294979400: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-75.59997, 176.40005, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294979941: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-52.79998, 145.80002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294980448: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (59.400036, 154.80003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294981107: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (84.60003, 99.60004, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294981396: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (130.80008, 133.20001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294981593: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (211.80008, 141.60004, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294981744: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (315.0001, 102.00003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294981949: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (373.80005, 213.00003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982054: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (461.40012, 121.80003, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982161: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (504.60007, -19.199986, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982270: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (424.20004, -98.399994, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982381: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (415.20004, -148.79999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982494: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (411.00012, -199.2, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982552: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (359.40005, -213.0, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982669: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (241.20006, -224.99998, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982729: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (158.40001, -236.99998, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982790: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (127.20005, -239.40001, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982852: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (16.199999, -252.60004, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982915: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-41.399952, -255.0, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294982979: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-149.39998, -247.80005, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294983044: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-195.6, -248.40002, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294983110: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-362.4, -205.80005, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294983177: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-397.2, -151.2, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294983245: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-448.80005, -25.19998, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294983314: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_orbit::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-451.20004, -15.599988, 0.0),
           rotation: (0.0, 0.0, -0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),

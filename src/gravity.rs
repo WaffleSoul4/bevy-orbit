@@ -1,6 +1,13 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
+
+pub struct GravityPlugin;
+
+impl Plugin for GravityPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, apply_gravity);
+    }
+}
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 
@@ -23,7 +30,6 @@ pub struct Gravitable;
 #[derive(Component, Reflect, Default)]
 #[reflect(Component)]
 pub struct Gravitator;
-
 
 pub fn apply_gravity(
     gravitator: Query<(&Mass, &Transform, Option<&GravityLayers>), With<Gravitator>>,
