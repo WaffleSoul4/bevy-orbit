@@ -1,10 +1,11 @@
 use avian2d::{math::*, prelude::*};
 use bevy::{
-    input::{common_conditions::input_just_pressed, mouse::MouseMotion}, prelude::*, render::camera::Viewport
+    input::{common_conditions::input_just_pressed, mouse::MouseMotion},
+    prelude::*,
 };
 use bevy_egui::EguiPlugin;
 use debug::{DebugPlugin, DebugSettings};
-use editor::{CreateObject, LoadEvent, SaveEvent, SelectedDynamicConfig};
+use editor::{CreateObject, GameSerializable, LoadEvent, SaveEvent, SelectedDynamicConfig};
 use gravity::{Gravitable, Gravitator, GravityLayer, GravityLayers};
 use std::{collections::VecDeque, path::PathBuf, str::FromStr};
 
@@ -24,16 +25,35 @@ impl From<Option<Vec2>> for MousePos {
     }
 }
 
+// This is just a resilient version of SerializableCollider
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct SerializableCollider(ColliderConstructor);
+
+fn initialize_colliders(
+    colliders: Query<(&SerializableCollider, Entity), Without<Collider>>,
+    mut commands: Commands,
+) {
+    colliders.iter().for_each(|(serializable_collider, entity)|{
+        commands
+            .entity(entity)
+            .with_child(serializable_collider.0.clone());
+    });
+}
+
 #[derive(Component)]
 struct Selected;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 struct DynamicObject;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 struct StaticObject;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 struct Trigger {
     pub state: bool,
 }
@@ -67,11 +87,20 @@ struct PastMouseMotions(VecDeque<Vec2>);
 
 impl Default for PastMouseMotions {
     fn default() -> Self {
-        let mut past_mouse_motions: VecDeque<Vec2> = VecDeque::new();
+        let mut past_mouse_motions: VecDeque<Vec2> = VecDeque::with_capacity(5);
+
         for _ in 0..5 {
             past_mouse_motions.push_back(Vec2::ZERO)
         }
+
         PastMouseMotions(past_mouse_motions)
+    }
+}
+
+impl PastMouseMotions {
+    fn update(&mut self, val: Vec2) {
+        self.0.pop_front();
+        self.0.push_back(val);
     }
 }
 
@@ -96,39 +125,40 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             PhysicsPlugins::default(),
-            EguiPlugin {enable_multipass_for_primary_context: false },
+            EguiPlugin {
+                enable_multipass_for_primary_context: false,
+            },
             DebugPlugin,
+            editor::SerializeableTypeRegistrationPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            (
-                release_selected,
-                game_binds,
-            )
+            (release_selected, game_binds)
                 .run_if(|state: Res<GameState>| *state == GameState::Play),
         )
         .add_systems(
             Update,
             (
+                initialize_colliders,
                 gravity::apply_gravity,
                 create_objects,
                 get_cursor_position.pipe(update_resource::<Option<Vec2>, MousePos>),
                 (global_binds, zoom_camera, pan_camera_mouse)
-                    .run_if(resource_is_some::<_, MousePos>),
+                    .run_if(resource_is_some::<MousePos, _>),
                 toggle_gamestate,
                 update_triggers,
                 pan_camera_keys,
                 apply_camera_velocity,
                 editor::side_menu.run_if(|state: Res<GameState>| *state == GameState::Editor),
-                editor::save_level,
-                editor::load_level,
                 restore_viewport.run_if(resource_changed::<GameState>),
+                editor::serialize_objects,
+                editor::deserialize_objects,
             ),
         )
         .add_systems(
             Update,
-            (|mut settings: ResMut<DebugSettings>| settings.toggle_ui() )
+            (|mut settings: ResMut<DebugSettings>| settings.toggle_ui())
                 .run_if(input_just_pressed(KeyCode::KeyL)),
         )
         .add_systems(PostUpdate, (clear_level, reset_level))
@@ -149,19 +179,16 @@ fn setup(
     commands.insert_resource(MousePos(None));
     commands.insert_resource(GameState::Play);
 
-
     commands.insert_resource(PastMouseMotions::default());
 
     // Disable Avian Gravity
     commands.insert_resource(Gravity::ZERO);
 }
 
-fn restore_viewport(mut camera: Single<&mut Camera, With<GameCamera>>, window: Single<&Window>) {
-    camera.viewport = Some(Viewport {
-        physical_position: UVec2::ZERO,
-        physical_size: window.physical_size(),
-        ..default()
-    })
+// Using the window data to defie the viewport doesn't support changes to the window
+// This caused an error where the viewport wouldn't update when the window was resized
+fn restore_viewport(mut camera: Single<&mut Camera, With<GameCamera>>) {
+    camera.viewport = None;
 }
 
 fn toggle_gamestate(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<GameState>) {
@@ -183,7 +210,7 @@ fn pan_camera_keys(
 
     let projection = match projection {
         Projection::Orthographic(orthographic_projection) => orthographic_projection,
-        _ => panic!("Invalid projection type found")
+        _ => panic!("Invalid projection type found"),
     };
 
     let camera_movement_speed = CAMERA_MOVE_SPEED * projection.scale;
@@ -216,7 +243,7 @@ fn zoom_camera(
 
     let projection = match projection.as_mut() {
         Projection::Orthographic(orthographic_projection) => orthographic_projection,
-        _ => panic!("Invalid camera projection type found")
+        _ => panic!("Invalid camera projection type found"),
     };
 
     for event in scroll_events.read() {
@@ -231,7 +258,7 @@ fn zoom_camera(
                     projection.scale /= 1.1;
                 }
 
-                let dif_vec = -transform.translation + mouse_pos.unwrap_or(Vec2::ZERO).extend(0.0); // * zoom_modifier;
+                let dif_vec = -transform.translation + mouse_pos.unwrap_or(Vec2::ZERO).extend(0.0);
 
                 transform.translation += (dif_vec / 10.0) * zoom_modifier;
             }
@@ -247,7 +274,7 @@ fn zoom_camera(
 }
 
 fn update_triggers(
-    mut trigger_query: Query<(Entity, &mut Trigger, &Transform), With<Collider>>,
+    mut trigger_query: Query<(Entity, &mut Trigger), With<Collider>>,
     collisions: Collisions,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -255,28 +282,21 @@ fn update_triggers(
 ) {
     let _ = trigger_query
         .iter_mut()
-        .filter(|x| {
-            collisions
-                .iter()
-                .any(|y| y.collider1 == x.0 || y.collider2 == x.0) // Check if the trigger is among the collisions
-        })
-        .for_each(|(_, ref mut t, transform)| {
-            if !t.state {
-                t.trigger();
+        .filter(|(trigger_entity, _)| collisions.collisions_with(*trigger_entity).next().is_some())
+        .for_each(|(trigger_entity, trigger)| {
+            if !trigger.state {
+                trigger.into_inner().trigger();
 
-                commands.spawn((
-                    Mesh2d(meshes.add(Circle::new(12.0))),
-                    Transform {
-                        translation: Vec3 {
-                            x: transform.translation.x,
-                            y: transform.translation.y,
-                            z: transform.translation.z - 1.0,
-                        },
-                        ..transform.clone()
-                    },
-                    MeshMaterial2d(materials.add(Color::srgb(0.1, 0.7, 0.3))),
-                    TriggerIndicator,
-                ));
+                let child = commands
+                    .spawn((
+                        Mesh2d(meshes.add(Circle::new(12.0))),
+                        Transform::from_xyz(0.0, 0.0, -1.0),
+                        MeshMaterial2d(materials.add(Color::srgb(0.1, 0.7, 0.3))),
+                        TriggerIndicator,
+                    ))
+                    .id();
+
+                commands.entity(trigger_entity).add_child(child);
             }
         });
 }
@@ -291,9 +311,7 @@ fn get_cursor_position(
         let viewport_rect = camera.logical_viewport_rect()?;
 
         if viewport_rect.contains(cursor) {
-            return camera
-                .viewport_to_world_2d(camera_transform, cursor)
-                .ok();
+            return camera.viewport_to_world_2d(camera_transform, cursor).ok();
         }
 
         return None;
@@ -308,7 +326,7 @@ fn update_resource<Input, Resource: bevy::prelude::Resource + From<Input>>(
     *resource = Resource::from(value)
 }
 
-fn resource_is_some<T, Resource: bevy::prelude::Resource + std::ops::Deref<Target = Option<T>>>(
+fn resource_is_some<Resource: bevy::prelude::Resource + std::ops::Deref<Target = Option<T>>, T>(
     resource: Res<Resource>,
 ) -> bool {
     resource.into_inner().is_some()
@@ -382,11 +400,12 @@ fn create_objects(
                     },
                     MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
                     Mass(*mass),
-                    Gravitator,
-                    Collider::circle(*radius as Scalar),
+                    Gravitator, // Thing
+                    SerializableCollider(ColliderConstructor::Circle { radius: *radius as Scalar }),
                     RigidBody::Static,
                     GravityLayers::new(GravityLayer::Static, [GameLayer::Main]),
                     StaticObject,
+                    GameSerializable,
                 ));
             }
             CreateObject::Dynamic {
@@ -397,8 +416,7 @@ fn create_objects(
                 gravitator,
                 selected,
             } => {
-                commands
-                    .spawn((
+                commands.spawn((
                         Mesh2d(meshes.add(Circle::new(10.0))),
                         Transform::from_translation(position.extend(0.0)),
                         MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
@@ -413,8 +431,9 @@ fn create_objects(
                     Transform::from_translation(position.extend(-1.0)),
                     MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
                     Trigger::new(false),
-                    Collider::circle(10.0),
+                    SerializableCollider(ColliderConstructor::Circle { radius: 10.0 }),
                     CollisionLayers::new(GameLayer::Triggers, [GameLayer::Main]),
+                    GameSerializable,
                 ));
             }
         }
@@ -426,10 +445,7 @@ fn pan_camera_mouse(
     keys: Res<ButtonInput<KeyCode>>,
     mut past_mouse_motions: ResMut<PastMouseMotions>,
     mut mouse_motion_reader: EventReader<MouseMotion>,
-    camera_query: Single<
-        (&mut Transform, &Projection, &mut CameraVelocity),
-        With<GameCamera>,
-    >,
+    camera_query: Single<(&mut Transform, &Projection, &mut CameraVelocity), With<GameCamera>>,
 ) {
     if !keys.pressed(KeyCode::ShiftLeft) {
         *past_mouse_motions = PastMouseMotions::default();
@@ -439,20 +455,33 @@ fn pan_camera_mouse(
 
     let projection = match projection {
         Projection::Orthographic(orthographic_projection) => orthographic_projection,
-        _ => panic!("Invalid camera projection type found")
+        _ => panic!("Invalid camera projection type found"),
     };
 
-    let mut mouse_move_counter = Vec2::ZERO;
-
     if mouse_input.pressed(MouseButton::Left) && keys.pressed(KeyCode::ShiftLeft) {
-        for mouse_motion in mouse_motion_reader.read() {
-            let corrected_mouse_motion = Vec2::new(-mouse_motion.delta.x, mouse_motion.delta.y);
+        let mut motions = mouse_motion_reader.read();
 
-            past_mouse_motions.0.push_back(corrected_mouse_motion);
-            past_mouse_motions.0.pop_front();
+        match motions.next() {
+            Some(motion) => {
+                let corrected_motion = Vec2::new(-motion.delta.x, motion.delta.y);
 
-            camera_transform.translation = (camera_transform.translation.xy() + corrected_mouse_motion * projection.scale).extend(camera_transform.translation.z);
-            mouse_move_counter += mouse_motion.delta;
+                past_mouse_motions.update(corrected_motion);
+
+                let camera_z = camera_transform.translation.z;
+
+                camera_transform.translation += corrected_motion.extend(camera_z);
+
+                motions.for_each(|motion| {
+                    let corrected_motion = Vec2::new(-motion.delta.x, motion.delta.y);
+
+                    past_mouse_motions.update(corrected_motion);
+
+                    let camera_z = camera_transform.translation.z;
+
+                    camera_transform.translation += corrected_motion.extend(camera_z);
+                });
+            }
+            None => past_mouse_motions.update(Vec2::ZERO),
         }
     }
 
@@ -484,7 +513,8 @@ fn release_selected(
 ) {
     if mouse_input.just_released(MouseButton::Left) {
         for (entity, transform, selected_dynamic_config) in selected_query.iter() {
-            let dif = transform.translation.xy() - mouse_pos.unwrap_or_default();
+            // If the mouse pos is none, do nothing
+            let dif = transform.translation.xy() - mouse_pos.unwrap_or(transform.translation.xy());
 
             let mut entity_commands = commands.entity(entity);
 
@@ -492,11 +522,11 @@ fn release_selected(
                 .insert((
                     Mass(selected_dynamic_config.mass),
                     LinearVelocity(dif),
-                    Collider::circle(selected_dynamic_config.radius as Scalar),
+                    SerializableCollider(ColliderConstructor::Circle { radius: selected_dynamic_config.radius as Scalar }),
                     RigidBody::Dynamic,
                 ))
                 .insert_if(Gravitable, || selected_dynamic_config.gravitable)
-                .insert_if(Gravitator, || selected_dynamic_config.gravitator)
+                .insert_if(Gravitator, || selected_dynamic_config.gravitator) // Other thing
                 .remove::<Selected>();
 
             if keys.pressed(KeyCode::ShiftLeft) {

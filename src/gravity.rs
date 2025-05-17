@@ -1,5 +1,6 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
+use serde::{Serialize, Deserialize};
 
 const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 
@@ -15,11 +16,14 @@ pub enum GravityLayer {
 // So for clarity, if object a is a member of layer x with filters y and z,
 // objects with membership y and z will affect it
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
 pub struct Gravitable;
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
 pub struct Gravitator;
+
 
 pub fn apply_gravity(
     gravitator: Query<(&Mass, &Transform, Option<&GravityLayers>), With<Gravitator>>,
@@ -75,7 +79,8 @@ pub fn apply_gravity(
 
 use avian2d::prelude::LayerMask;
 
-#[derive(bevy::prelude::Component, Clone, Copy)]
+#[derive(bevy::prelude::Component, Clone, Copy, Reflect)]
+#[reflect(Component)]
 pub struct GravityLayers {
     pub memberships: LayerMask,
 

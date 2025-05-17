@@ -186,7 +186,7 @@ pub fn draw_velocity_arrows(
 
     // Draw arrows for objects that are currently [Selected]
     selected_object_query.iter().for_each(|transform| {
-        let dif = transform.translation.xy() - mouse_pos.unwrap_or_default();
+        let dif = transform.translation.xy() - mouse_pos.unwrap_or(transform.translation.xy());
 
         gizmos.arrow_2d(
             transform.translation.xy(),
@@ -205,7 +205,7 @@ pub fn draw_grid(
 
     let projection = match projection {
         Projection::Orthographic(orthographic_projection) => orthographic_projection,
-        _ => panic!("Invalid projection type found")
+        _ => panic!("Invalid projection type found"),
     };
 
     let scale = projection.scale;

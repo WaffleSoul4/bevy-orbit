@@ -1,0 +1,65 @@
+(
+  resources: {},
+  entities: {
+    4294967320: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-141.59999, -181.79999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967338: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-89.39996, 4.7999964, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967363: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_transform::components::transform::Transform": (
+          translation: (455.40012, -61.19999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967421: (
+      components: {
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::StaticObject": (),
+        "bevy_orbit::gravity::Gravitator": (),
+        "bevy_transform::components::transform::Transform": (
+          translation: (286.80008, -122.99999, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+  },
+)

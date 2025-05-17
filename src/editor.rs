@@ -1,10 +1,18 @@
 use crate::{
-    gravity::Gravitator, level::{EntityType, LevelDescriptor}, GameCamera, StaticObject
+    gravity::{Gravitable, Gravitator, GravityLayer, GravityLayers}, DynamicObject, GameCamera, SerializableCollider, StaticObject
 };
-use avian2d::prelude::Mass;
-use bevy::prelude::*;
-use bevy_egui::{egui::{self}, EguiContexts};
-use std::{ops::Mul, path::PathBuf};
+use avian2d::prelude::{Collider, ColliderConstructor, Mass};
+use bevy::{prelude::*, reflect::TypeRegistry};
+use bevy_egui::{
+    EguiContexts,
+    egui::{self},
+};
+use std::{
+    fs::File,
+    io::{BufWriter, Read, Write},
+    ops::Mul,
+    path::PathBuf,
+};
 
 #[derive(Event)]
 pub struct SaveEvent {
@@ -32,10 +40,70 @@ impl LoadEvent {
     }
 }
 
- // I'm going to wait until avian and bevy egui have 0.16 support
- // because Serializing right now is much less fun.
+/// Put types that need to be serialized in here
+pub struct SerializeableTypeRegistrationPlugin;
+
+impl Plugin for SerializeableTypeRegistrationPlugin {
+    fn build(&self, app: &mut App) {
+        app.register_type::<Gravitable>()
+            .register_type::<Gravitator>()
+            .register_type::<GravityLayers>()
+            .register_type::<crate::Trigger>()
+            .register_type::<StaticObject>()
+            .register_type::<DynamicObject>()
+            .register_type::<SerializableCollider>();
+    }
+}
+
 #[derive(Component)]
-struct GameSerializable;
+pub struct GameSerializable;
+
+pub fn serialize_objects(
+    mut events: EventReader<SaveEvent>,
+    world: &World,
+    entities: Query<Entity, With<GameSerializable>>,
+    type_registry: Res<AppTypeRegistry>,
+) {
+    let type_registry = type_registry.read();
+
+    for event in events.read() {
+        let scene_builder = DynamicSceneBuilder::from_world(world)
+            .deny_all()
+            .allow_component::<SerializableCollider>()
+            .allow_component::<crate::Trigger>()
+            .allow_component::<Gravitable>()
+            .allow_component::<Gravitator>()
+            .allow_component::<Mass>()
+            .allow_component::<StaticObject>()
+            .allow_component::<DynamicObject>()
+            .allow_component::<Transform>();
+
+        let scene = scene_builder
+            .extract_entities(entities.iter())
+            .build();
+
+        let serialized = scene.serialize(&type_registry).unwrap_or_else(|err| {
+            error!("Failed to serialize scene: {err}");
+            String::from("Error Serializing")
+        });
+
+        // @TODO: Add error handling
+        File::create(event.file.clone())
+            .unwrap_or_else(|err| panic!("Failed to open file '{}': {err}", event.file.display()))
+            .write_all(serialized.as_bytes())
+            .unwrap();
+    }
+}
+
+pub fn deserialize_objects(
+    mut save_events: EventReader<LoadEvent>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    for event in save_events.read() {
+        commands.spawn(DynamicSceneRoot(asset_server.load(event.file.clone())));
+    }
+}
 
 // Basically I want to be able to store data ([Gravitable], [Gravitator])
 // but not actually have them enabled
@@ -59,8 +127,6 @@ impl SelectedDynamicConfig {
         }
     }
 }
-
-
 
 #[derive(Event, Clone, Copy)]
 pub enum CreateObject {
@@ -119,61 +185,6 @@ impl CreateObject {
     }
 }
 
-pub fn save_level(
-    statics: Query<
-        (
-            &Transform,
-            &MeshMaterial2d<ColorMaterial>,
-            Option<&Gravitator>,
-            &Mass,
-        ),
-        With<StaticObject>,
-    >,
-    materials: Res<Assets<ColorMaterial>>,
-    mut save_events: EventReader<SaveEvent>,
-) {
-    for save_event in save_events.read() {
-        let mut level_descriptor = LevelDescriptor::new(Vec2::ZERO, &save_event.level_name);
-
-        for (transform, color, gravitator, mass) in statics.iter() {
-            level_descriptor.add_entity(EntityType::new_static(
-                transform.translation.xy(),
-                mass.0,
-                gravitator.is_some(),
-                materials.get(color.id()).unwrap().color,
-            ));
-        }
-
-        level_descriptor
-            .save_to_file(save_event.file.clone())
-            .expect("Error handling might happen one day :3");
-    }
-}
-
-pub fn load_level(
-    mut load_events: EventReader<LoadEvent>,
-    mut object_events: EventWriter<CreateObject>,
-) {
-    for load_event in load_events.read() {
-        let level_descriptor = LevelDescriptor::load_from_file(load_event.file.clone()).unwrap();
-
-        for entity in level_descriptor.entities {
-            match entity {
-                EntityType::StaticObject {
-                    position,
-                    mass,
-                    gravitator: _,
-                    color: _,
-                } => {
-                    object_events.write(CreateObject::new_static(mass, position, 10.0));
-                    // Ye there are definently some incompatabilities, these types should be very similar
-                }
-                EntityType::Trigger { position: _ } => todo!(),
-            }
-        }
-    }
-}
-
 pub fn side_menu(
     mut contexts: EguiContexts,
     window: Single<&Window>,
@@ -189,15 +200,14 @@ pub fn side_menu(
             ui.label("This will be where the editor is!");
             ui.horizontal(|ui| {
                 if ui.button("Save level").clicked() {
+                    eprintln!("Pressed button");
                     save_events.write(SaveEvent::new(
-                        PathBuf::from("test_levels/level2"),
+                        PathBuf::from("assets/test_levels/level2.scn.ron"),
                         "Abcdefg",
                     ));
                 }
                 if ui.button("Load level").clicked() {
-                    load_events.write(LoadEvent::new(
-                        PathBuf::from("test_levels/level2"),
-                    ));
+                    load_events.write(LoadEvent::new(PathBuf::from("test_levels/level2.scn.ron")));
                 }
             });
 
