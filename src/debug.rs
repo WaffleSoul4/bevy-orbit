@@ -4,6 +4,7 @@ use bevy_egui::{
     EguiContexts,
     egui::{self},
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub struct DebugPlugin;
 
@@ -15,7 +16,12 @@ impl Default for DebugPlugin {
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(DebugSettings::default()).add_systems(
+        app.add_plugins(
+            WorldInspectorPlugin::new()
+                .run_if(|settings: Res<DebugSettings>| settings.show_inspector),
+        )
+        .insert_resource(DebugSettings::default())
+        .add_systems(
             Update,
             (
                 draw_grid.run_if(|settings: Res<DebugSettings>| settings.grid_settings.show_grid),
@@ -57,6 +63,7 @@ impl Default for GridSettings {
 
 #[derive(Resource)]
 pub struct DebugSettings {
+    pub show_inspector: bool,
     pub show_ui: bool,
     show_velocity_arrows: bool,
     grid_settings: GridSettings,
@@ -65,6 +72,7 @@ pub struct DebugSettings {
 impl Default for DebugSettings {
     fn default() -> Self {
         DebugSettings {
+            show_inspector: false,
             show_ui: true,
             show_velocity_arrows: false,
             grid_settings: GridSettings::default(),
@@ -75,6 +83,10 @@ impl Default for DebugSettings {
 impl DebugSettings {
     pub fn toggle_ui(&mut self) {
         self.show_ui = !self.show_ui;
+    }
+
+    pub fn toggle_inspector(&mut self) {
+        self.show_inspector = !self.show_inspector;
     }
 }
 
@@ -95,6 +107,9 @@ pub fn debug_ui(
     let mut camera = camera_query.into_inner();
 
     egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
+        ui.button("Toggle inspector")
+            .clicked()
+            .then(|| debug_settings.toggle_inspector());
         ui.checkbox(&mut debug_settings.grid_settings.show_grid, "Show grid");
         ui.checkbox(
             &mut debug_settings.show_velocity_arrows,
