@@ -57,10 +57,10 @@ fn main() {
         .add_systems(
             PostUpdate,
             (
-                clear_level.run_if(input_pressed(KeyCode::ShiftLeft)).run_if(input_just_pressed(KeyCode::Space)),
-                reset_level
-                    
+                clear_level
+                    .run_if(input_pressed(KeyCode::ShiftLeft))
                     .run_if(input_just_pressed(KeyCode::Space)),
+                reset_level.run_if(input_just_pressed(KeyCode::Space)),
             ),
         )
         .run();

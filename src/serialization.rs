@@ -10,7 +10,12 @@ impl Plugin for SerializationPlugin {
             .add_event::<LoadEvent>()
             .add_systems(
                 Update,
-                (initialize_colliders, serialize_objects, deserialize_objects),
+                (
+                    initialize_colliders,
+                    initialize_textures,
+                    serialize_objects,
+                    deserialize_objects,
+                ),
             );
     }
 }
@@ -26,7 +31,8 @@ impl Plugin for SerializeableTypeRegistrationPlugin {
             .register_type::<crate::Trigger>()
             .register_type::<crate::StaticObject>()
             .register_type::<crate::DynamicObject>()
-            .register_type::<SerializableCollider>();
+            .register_type::<SerializableCollider>()
+            .register_type::<SerializableAsset>();
     }
 }
 
@@ -50,6 +56,7 @@ fn serialize_objects(
             .allow_component::<crate::StaticObject>()
             .allow_component::<crate::DynamicObject>()
             .allow_component::<SerializableCollider>()
+            .allow_component::<SerializableAsset>()
             // External types
             .allow_component::<Transform>()
             .allow_component::<avian2d::prelude::Mass>();
@@ -111,6 +118,7 @@ impl SerializableCollider {
     }
 }
 
+// I don't think it's possible to use data from inside the component when registering required components
 pub fn initialize_colliders(
     colliders: Query<
         (&SerializableCollider, Entity),
@@ -157,4 +165,52 @@ impl LoadEvent {
     pub fn new<U: Into<PathBuf>>(path: U) -> Self {
         LoadEvent { path: path.into() }
     }
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub enum SerializableAsset {
+    Sprite { path: PathBuf },
+    // Meshes are ugly in the scene files, so I might figure out how to
+    // serialize the shapes instead (preferably without a ton of enum variants)
+    Mesh { mesh: Mesh },
+}
+
+impl SerializableAsset {
+    pub fn sprite<T: Into<PathBuf>>(path: T) -> Self {
+        SerializableAsset::Sprite { path: path.into() }
+    }
+
+    pub fn mesh<T: Into<Mesh>>(mesh: T) -> Self {
+        SerializableAsset::Mesh { mesh: mesh.into() }
+    }
+}
+
+// NOTE: This stuff causes deserialization to fail because of a divide by zero
+// Somehow, somewhere, somebody sets the one of the mesh vetex buffer layouts'
+// size to zero, which causes a failure in a division when allocating memory
+//
+// Still debating whether to open an issue (I don't know nearly enough about the
+// internals to make a pr)
+
+fn initialize_textures(
+    assets: Query<(&SerializableAsset, Entity), (Without<Mesh2d>,)>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
+) {
+    assets.iter().for_each(|(asset, entity)| {
+        info!("Initializing asset");
+
+        let mut entity_commands = commands.entity(entity);
+
+        match asset {
+            SerializableAsset::Sprite { path } => {
+                entity_commands.insert(Sprite::from_image(asset_server.load(path.clone())))
+            }
+            SerializableAsset::Mesh { mesh } => {
+                entity_commands.insert(Mesh2d(meshes.add(mesh.clone())))
+            }
+        };
+    });
 }

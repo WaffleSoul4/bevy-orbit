@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use cursor::CursorPosition;
 use editor::CreateObject;
 use gravity::{Gravitable, Gravitator, GravityLayer, GravityLayers};
-use serialization::{GameSerializable, SerializableCollider};
+use serialization::{GameSerializable, SerializableAsset, SerializableCollider};
 
 pub fn setup(mut commands: Commands) {
     commands.insert_resource(GameState::Play);
@@ -177,7 +177,7 @@ pub fn create_objects(
                 radius,
             } => {
                 commands.spawn((
-                    Mesh2d(meshes.add(Circle::new(*radius))),
+                    SerializableAsset::mesh(Circle::new(*radius)),
                     Transform {
                         translation: position.extend(0.0),
                         ..default()
@@ -204,7 +204,7 @@ pub fn create_objects(
             } => {
                 commands
                     .spawn((
-                        Mesh2d(meshes.add(Circle::new(10.0))),
+                        SerializableAsset::mesh(Circle::new(10.0)),
                         Transform::from_translation(position.extend(0.0)),
                         MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
                         SelectedDynamicConfig::new(*gravitable, *gravitator, *radius, *mass),
@@ -214,7 +214,7 @@ pub fn create_objects(
             }
             CreateObject::Trigger { position } => {
                 commands.spawn((
-                    Mesh2d(meshes.add(Circle::new(10.0))),
+                    SerializableAsset::mesh(Circle::new(10.0)),
                     Transform::from_translation(position.extend(-1.0)),
                     MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
                     Trigger::new(false),
