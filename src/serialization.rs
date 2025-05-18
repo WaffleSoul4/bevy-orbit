@@ -169,11 +169,31 @@ impl LoadEvent {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub enum SerializableAsset {
+pub enum SerializableAsset{
     Sprite { path: PathBuf },
-    // Meshes are ugly in the scene files, so I might figure out how to
-    // serialize the shapes instead (preferably without a ton of enum variants)
+    // Using meshes will cause a panic on deserialization
     Mesh { mesh: Mesh },
+    // This is preferable to mesh
+    Primitive { shape: SerializableMeshPrimitives },
+}
+
+#[derive(Clone, Reflect)]
+pub enum SerializableMeshPrimitives {
+    Circle(Circle), // This is the only one we need for now
+}
+
+impl From<Circle> for SerializableMeshPrimitives {
+    fn from(value: Circle) -> Self {
+        SerializableMeshPrimitives::Circle(value)
+    }
+}
+
+impl Into<Mesh> for SerializableMeshPrimitives {
+    fn into(self) -> Mesh {
+        match self {
+            SerializableMeshPrimitives::Circle(circle) => circle.mesh().build()
+        }
+    }
 }
 
 impl SerializableAsset {
@@ -184,14 +204,15 @@ impl SerializableAsset {
     pub fn mesh<T: Into<Mesh>>(mesh: T) -> Self {
         SerializableAsset::Mesh { mesh: mesh.into() }
     }
+
+    pub fn primitive<T: Into<SerializableMeshPrimitives>>(shape: T) -> Self {
+        SerializableAsset::Primitive { shape: shape.into() }
+    }
 }
 
-// NOTE: This stuff causes deserialization to fail because of a divide by zero
+// NOTE: Directly using meshes causes deserialization to fail because of a divide by zero
 // Somehow, somewhere, somebody sets the one of the mesh vetex buffer layouts'
 // size to zero, which causes a failure in a division when allocating memory
-//
-// Still debating whether to open an issue (I don't know nearly enough about the
-// internals to make a pr)
 
 fn initialize_textures(
     assets: Query<(&SerializableAsset, Entity), (Without<Mesh2d>,)>,
@@ -210,6 +231,9 @@ fn initialize_textures(
             }
             SerializableAsset::Mesh { mesh } => {
                 entity_commands.insert(Mesh2d(meshes.add(mesh.clone())))
+            }
+            SerializableAsset::Primitive { shape } => {
+                entity_commands.insert(Mesh2d(meshes.add(shape.clone())))
             }
         };
     });
