@@ -1,3 +1,4 @@
+use crate::cursor;
 use bevy::prelude::*;
 
 pub struct CameraPlugin;
@@ -66,39 +67,41 @@ fn pan_camera_keys(
 fn zoom_camera(
     camera_query: Single<(&mut Projection, &mut Transform), With<GameCamera>>,
     mut scroll_events: EventReader<bevy::input::mouse::MouseWheel>,
-    mouse_pos: Res<crate::cursor::CursorPosition>,
+    cursor_pos: Res<cursor::CursorPosition>,
 ) {
     use bevy::input::mouse::MouseScrollUnit;
 
-    let (mut projection, mut transform) = camera_query.into_inner();
+    match *cursor_pos {
+        cursor::CursorPosition(Some(cursor_pos)) => {
+            let (mut projection, mut transform) = camera_query.into_inner();
 
-    match projection.as_mut() {
-        Projection::Orthographic(projection) => {
-            for event in scroll_events.read() {
-                let mut zoom_modifier = 1.0;
+            match projection.as_mut() {
+                Projection::Orthographic(projection) => {
+                    for event in scroll_events.read() {
+                        let mut zoom_modifier = 1.0;
 
-                match event.unit {
-                    MouseScrollUnit::Line => {
-                        if event.y <= -1.0 {
-                            projection.scale *= 1.1;
-                            zoom_modifier = -1.1;
-                        } else if event.y >= 1.0 {
-                            projection.scale /= 1.1;
+                        match event.unit {
+                            MouseScrollUnit::Line => {
+                                if event.y <= -1.0 {
+                                    projection.scale *= 1.1;
+                                    zoom_modifier = -1.1;
+                                } else if event.y >= 1.0 {
+                                    projection.scale /= 1.1;
+                                }
+
+                                let dif_vec = -transform.translation + cursor_pos.extend(0.0);
+
+                                transform.translation += (dif_vec / 10.0) * zoom_modifier;
+                            }
+                            MouseScrollUnit::Pixel => todo!(),
                         }
-
-                        let dif_vec = -transform.translation
-                            + mouse_pos
-                                .and_then(|pos| Some(pos.extend(0.0)))
-                                .unwrap_or(transform.translation);
-
-                        transform.translation += (dif_vec / 10.0) * zoom_modifier;
                     }
-                    MouseScrollUnit::Pixel => todo!(),
                 }
-            }
+                _ => unimplemented!(),
+            };
         }
-        _ => unimplemented!(),
-    };
+        _ => {}
+    }
 }
 
 // Using the window data to defie the viewport doesn't support changes to the window

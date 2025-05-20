@@ -3,14 +3,16 @@ use bevy::{
     input::common_conditions::{input_just_pressed, input_pressed},
     prelude::*,
 };
-use bevy_egui::EguiPlugin;
 use bevy_orbit::{
     camera::{CameraPlugin, restore_viewport},
     cursor::CursorPlugin,
     debug::{DebugPlugin, toggle_debug_ui},
     editor::{EditorPlugin, side_menu},
     gravity::GravityPlugin,
-    serialization::SerializationPlugin,
+    serialization::{
+        SerializationPlugin, spawn_temp_scene, load_active_level, remove_active_level,
+        remove_level_entities,
+    },
     *,
 };
 
@@ -25,9 +27,6 @@ fn main() {
             DebugPlugin,
             SerializationPlugin,
             PhysicsPlugins::default(),
-            EguiPlugin {
-                enable_multipass_for_primary_context: false,
-            },
         ))
         // Startup Systems
         .add_systems(Startup, setup)
@@ -53,6 +52,20 @@ fn main() {
                 update_triggers,
             ),
         )
+        // Serialization bindings
+        .add_systems(
+            Update,
+            (
+                (remove_active_level, spawn_temp_scene)
+                    .chain()
+                    .run_if(resource_changed::<GameState>)
+                    .run_if(|state: Res<GameState>| *state == GameState::Editor),
+                (remove_level_entities, load_active_level)
+                     .chain()
+                     .run_if(resource_changed::<GameState>)
+                     .run_if(|state: Res<GameState>| *state == GameState::Play),
+            ),
+        )
         // Post Update Systems
         .add_systems(
             PostUpdate,
@@ -60,7 +73,9 @@ fn main() {
                 clear_level
                     .run_if(input_pressed(KeyCode::ShiftLeft))
                     .run_if(input_just_pressed(KeyCode::Space)),
-                reset_level.run_if(input_just_pressed(KeyCode::Space)),
+                reset_level
+                    .run_if(input_just_pressed(KeyCode::Space))
+                    .run_if(not(input_pressed(KeyCode::ShiftLeft))),
             ),
         )
         .run();

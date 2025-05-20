@@ -11,7 +11,9 @@ use bevy::prelude::*;
 use cursor::CursorPosition;
 use editor::CreateObject;
 use gravity::{Gravitable, Gravitator, GravityLayer, GravityLayers};
-use serialization::{GameSerializable, SerializableAsset, SerializableCollider};
+use serialization::{
+    GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
+};
 
 pub fn setup(mut commands: Commands) {
     commands.insert_resource(GameState::Play);
@@ -163,12 +165,7 @@ impl SelectedDynamicConfig {
     }
 }
 
-pub fn create_objects(
-    mut events: EventReader<CreateObject>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+pub fn create_objects(mut events: EventReader<CreateObject>, mut commands: Commands) {
     for event in events.read() {
         match event {
             CreateObject::Static {
@@ -177,12 +174,12 @@ pub fn create_objects(
                 radius,
             } => {
                 commands.spawn((
-                    SerializableAsset::primitive(Circle::new(*radius)),
+                    SerializableMesh::primitive(Circle::new(*radius)),
                     Transform {
                         translation: position.extend(0.0),
                         ..default()
                     },
-                    MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
+                    SerilializableMeshMaterial::color(Color::oklab(1.0, 0.7, 0.3)),
                     Mass(*mass),
                     Gravitator,
                     SerializableCollider::new(ColliderConstructor::Circle {
@@ -204,9 +201,9 @@ pub fn create_objects(
             } => {
                 commands
                     .spawn((
-                        SerializableAsset::primitive(Circle::new(10.0)),
+                        SerializableMesh::primitive(Circle::new(10.0)),
                         Transform::from_translation(position.extend(0.0)),
-                        MeshMaterial2d(materials.add(Color::oklab(1.0, 0.7, 0.3))),
+                        SerilializableMeshMaterial::color(Color::oklab(1.0, 0.7, 0.3)),
                         SelectedDynamicConfig::new(*gravitable, *gravitator, *radius, *mass),
                         DynamicObject,
                     ))
@@ -214,9 +211,9 @@ pub fn create_objects(
             }
             CreateObject::Trigger { position } => {
                 commands.spawn((
-                    SerializableAsset::primitive(Circle::new(10.0)),
+                    SerializableMesh::primitive(Circle::new(10.0)),
                     Transform::from_translation(position.extend(-1.0)),
-                    MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
+                    SerilializableMeshMaterial::color(Color::srgb(0.1, 0.3, 0.7)),
                     Trigger::new(false),
                     SerializableCollider::new(ColliderConstructor::Circle { radius: 10.0 }),
                     CollisionLayers::new(GameLayer::Triggers, [GameLayer::Main]),
@@ -262,7 +259,10 @@ pub fn release_selected(
     }
 }
 
-pub fn clear_level(mut commands: Commands, query: Query<Entity, With<Mesh2d>>) {
+pub fn clear_level(
+    mut commands: Commands,
+    query: Query<Entity, (With<Mesh2d>, With<Collider>, With<GlobalTransform>)>,
+) {
     query
         .iter()
         .for_each(|x| commands.get_entity(x).unwrap().despawn())

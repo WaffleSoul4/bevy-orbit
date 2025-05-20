@@ -10,6 +10,7 @@ license = "MIT"
 [dependencies]
 avian2d = { version = "0.3.0", features = ["serialize"] }
 bevy = "0.16.0"
+bevy-inspector-egui = "0.31.0"
 bevy_egui = "0.34.1"
 ron = "0.10.1"
 serde = { version = "1.0.219", features = ["derive"] }

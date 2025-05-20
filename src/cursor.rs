@@ -17,7 +17,7 @@ impl Plugin for CursorPlugin {
 }
 
 #[derive(Resource, Deref)]
-pub struct CursorPosition(Option<Vec2>);
+pub struct CursorPosition(pub Option<Vec2>);
 
 impl From<Option<Vec2>> for CursorPosition {
     fn from(value: Option<Vec2>) -> Self {

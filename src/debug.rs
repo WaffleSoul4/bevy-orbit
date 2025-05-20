@@ -1,7 +1,7 @@
 use avian2d::prelude::LinearVelocity;
 use bevy::prelude::*;
 use bevy_egui::{
-    EguiContexts,
+    EguiContexts, EguiPlugin,
     egui::{self},
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -16,7 +16,10 @@ impl Default for DebugPlugin {
 
 impl Plugin for DebugPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(
+        app.add_plugins(EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        })
+        .add_plugins(
             WorldInspectorPlugin::new()
                 .run_if(|settings: Res<DebugSettings>| settings.show_inspector),
         )
