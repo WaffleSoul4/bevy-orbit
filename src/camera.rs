@@ -116,7 +116,7 @@ fn pan_camera_mouse(
     cursor_position: Res<crate::cursor::CursorPosition>,
     cursor_motions: Res<crate::cursor::CursorMotions>,
     camera_query: Single<(&mut Transform, &Projection, &mut CameraVelocity), With<GameCamera>>,
-    mut cursor_lock_position: Local<Option<Vec2>>,
+    mut cursor_lock_position: Local<Vec2>,
 ) {
     use KeyCode::*;
     use MouseButton::*;
@@ -125,13 +125,19 @@ fn pan_camera_mouse(
         Some(cursor_position) => {
             let (mut transform, projection, mut velocity) = camera_query.into_inner();
 
+            let scale = match projection {
+                Projection::Orthographic(orthographic_projection) => orthographic_projection.scale,
+                _ => unimplemented!(),
+            };
+
+            if mouse.just_pressed(Left) {
+                *cursor_lock_position = cursor_position;
+            }
+
             if mouse.pressed(Left) && keys.pressed(ShiftLeft) {
-                match *cursor_lock_position {
-                    Some(lock_position) => {
-                        transform.translation += (lock_position - cursor_position).extend(0.0)
-                    }
-                    None => *cursor_lock_position = Some(cursor_position),
-                }
+                transform.translation += (*cursor_lock_position - cursor_position).extend(0.0)
+            } else if mouse.just_released(Left) && keys.pressed(ShiftLeft) {
+                **velocity += cursor_motions.sum() * scale;
             }
         }
         None => {}
