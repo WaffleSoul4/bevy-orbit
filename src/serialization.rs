@@ -1,5 +1,5 @@
-use bevy::{ecs::system::command, prelude::*, reflect::TypeRegistry};
-use std::{fmt::Display, fs::File, path::PathBuf};
+use bevy::{prelude::*, reflect::TypeRegistry};
+use std::{fs::File, path::PathBuf};
 
 pub struct SerializationPlugin;
 
@@ -7,7 +7,6 @@ impl Plugin for SerializationPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(SerializeableTypeRegistrationPlugin)
             .add_event::<SaveEvent>()
-            .add_event::<LoadEvent>()
             .insert_resource(LevelSerializationData::new("test_levels/level2.scn.ron"))
             .add_systems(
                 Update,
@@ -25,11 +24,10 @@ impl Plugin for SerializationPlugin {
 }
 
 type InternalSerializableTypes = (
-    crate::gravity::Gravitable,
-    crate::gravity::Gravitator,
+    crate::gravity::Gravity,
     crate::gravity::GravityLayers,
     crate::Trigger,
-    crate::StaticObject,
+    crate::LevelObject,
     crate::DynamicObject,
     SerializableCollider,
     SerializableMesh,
@@ -84,11 +82,11 @@ impl Plugin for SerializeableTypeRegistrationPlugin {
 // - The alternatives are
 //     1. Serializing from the world like I was doing before (Less work, mediocre)
 //     2. Adding another scene as a resource that serves as a buffer (Whoever thought of this is an idiot)
-//     3. Seperate editing from main game functionality (Most work, seems great in concept)
+//     3. Seperate editing from main game functionality (Most work, seems great in concept) <-- This one!
 
 #[derive(Resource)]
 pub struct LevelSerializationData {
-    pub path: PathBuf,
+    pub path: PathBuf, // Should this be an option?
 }
 
 impl LevelSerializationData {
@@ -105,6 +103,11 @@ pub fn load_active_level(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
+    info!(
+        "Loaded level as scene from '{:?}'",
+        level_serialization_data.path
+    );
+
     commands.spawn((
         DynamicSceneRoot(asset_server.load(level_serialization_data.path.clone())),
         ActiveLevel,
@@ -115,9 +118,7 @@ pub fn remove_active_level(
     mut commands: Commands,
     active_level: Single<Entity, With<ActiveLevel>>,
 ) {
-    commands
-        .entity(active_level.into_inner())
-        .despawn();
+    commands.entity(active_level.into_inner()).despawn();
 }
 
 fn serializable_components_type_registry() -> TypeRegistry {
@@ -142,11 +143,10 @@ fn serialize_objects(
         // Dynamic programming when
         let scene_builder = DynamicSceneBuilder::from_world(world)
             // Internal types
-            .allow_component::<crate::gravity::Gravitable>()
-            .allow_component::<crate::gravity::Gravitator>()
+            .allow_component::<crate::gravity::Gravity>()
             .allow_component::<crate::gravity::GravityLayers>()
             .allow_component::<crate::Trigger>()
-            .allow_component::<crate::StaticObject>()
+            .allow_component::<crate::LevelObject>()
             .allow_component::<crate::DynamicObject>()
             .allow_component::<SerializableCollider>()
             .allow_component::<SerializableMesh>()
@@ -177,7 +177,9 @@ fn serialize_objects(
 
         use std::io::Write;
 
-        let target_path = event.path.clone();
+        let mut target_path = PathBuf::from("assets/");
+
+        target_path.push(event.path.clone());
 
         bevy::tasks::IoTaskPool::get()
             .spawn(async move {
@@ -223,14 +225,10 @@ pub fn free_temp_scene_children(
     mut commands: Commands,
 ) {
     for child in children {
-        commands
-            .entity(child)
-            .remove::<ChildOf>();
+        commands.entity(child).remove::<ChildOf>();
     }
 
-    commands
-        .entity(temp_scene.into_inner())
-        .despawn();
+    commands.entity(temp_scene.into_inner()).despawn();
 }
 
 pub fn remove_level_entities(
@@ -253,6 +251,14 @@ impl SerializableCollider {
     }
 }
 
+impl From<Circle> for SerializableCollider {
+    fn from(value: Circle) -> Self {
+        SerializableCollider(avian2d::prelude::ColliderConstructor::Circle {
+            radius: value.radius,
+        })
+    }
+}
+
 // I don't think it's possible to use data from inside the component when registering required components
 pub fn initialize_colliders(
     colliders: Query<
@@ -267,7 +273,7 @@ pub fn initialize_colliders(
     colliders
         .iter()
         .for_each(|(serializable_collider, entity)| {
-            info!("Initializing collider");
+            // info!("Initializing collider");
 
             commands
                 .entity(entity)
@@ -276,29 +282,23 @@ pub fn initialize_colliders(
 }
 
 // Events for saving and loading
+// Pros
+// - Events for saving allow me to add more flexibility
+// - Only way for remote systems to trigger a save
+// - Better abstraction (maybe)
+// Cons
+// - Adds an extra layer of complexity to already complex system
+// I'll try to keep it for now
+//
+// But these events are only useful in the context of the editor!
 #[derive(Event)]
 pub struct SaveEvent {
     path: PathBuf,
-    level_name: String,
 }
 
 impl SaveEvent {
-    pub fn new<T: Display, U: Into<PathBuf>>(path: U, level_name: T) -> Self {
-        SaveEvent {
-            path: path.into(),
-            level_name: level_name.to_string(),
-        }
-    }
-}
-
-#[derive(Event)]
-pub struct LoadEvent {
-    path: PathBuf,
-}
-
-impl LoadEvent {
     pub fn new<U: Into<PathBuf>>(path: U) -> Self {
-        LoadEvent { path: path.into() }
+        SaveEvent { path: path.into() }
     }
 }
 
@@ -358,7 +358,7 @@ fn initialize_meshes(
     asset_server: Res<AssetServer>,
 ) {
     serializable_meshes.iter().for_each(|(mesh, entity)| {
-        info!("Initializing asset");
+        // info!("Initializing asset");
 
         let mut entity_commands = commands.entity(entity);
 
@@ -413,7 +413,7 @@ fn initialize_mesh_materials(
     serializable_materials
         .iter()
         .for_each(|(material, entity)| {
-            info!("Initializing material");
+            // info!("Initializing material");
 
             let mut entity_commands = commands.entity(entity);
 

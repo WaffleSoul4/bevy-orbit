@@ -17,7 +17,7 @@ const GRAVITATIONAL_CONSTANT: f32 = 1.0;
 pub enum GravityLayer {
     #[default]
     Main,
-    Static,
+    Level,
 }
 
 // So for clarity, if object a is a member of layer x with filters y and z,
@@ -25,52 +25,59 @@ pub enum GravityLayer {
 
 #[derive(Component, Reflect, Default)]
 #[reflect(Component)]
-pub struct Gravitable;
-
-#[derive(Component, Reflect, Default)]
-#[reflect(Component)]
-pub struct Gravitator;
+pub struct Gravity;
 
 pub fn apply_gravity(
-    gravitator: Query<(&Mass, &Transform, Option<&GravityLayers>), With<Gravitator>>,
-    mut gravitated: Query<
+    mut gravity_objects: Query<
         (
             &Mass,
             &Transform,
             &mut LinearVelocity,
             Option<&GravityLayers>,
         ),
-        With<Gravitable>,
+        With<Gravity>,
     >,
     time: Res<Time>,
 ) {
-    for (mass, transform, gravity_layers) in &gravitator {
-        for (gravitated_mass, gravitated_transform, mut velocity, gravitated_gravity_layers) in
-            &mut gravitated
-        {
-            let default_gravity_layer = GravityLayers::default();
-            let gravitator_layers = gravity_layers.unwrap_or(&default_gravity_layer);
-            let gravitated_layers = gravitated_gravity_layers.unwrap_or(&default_gravity_layer);
+    let mut combinations = gravity_objects.iter_combinations_mut::<2>();
 
-            if gravitator_layers.interacts_with(*gravitated_layers) {
-                let diff_vector =
-                    transform.translation.xy() - gravitated_transform.translation.xy();
+    while let Some(
+        [
+            (mass1, transform1, mut velocity1, gravity_layer_1),
+            (mass2, transform2, mut velocity2, gravity_layer_2),
+        ],
+    ) = combinations.fetch_next()
+    {
+        let layers_1 = gravity_layer_1.unwrap_or(&GravityLayers::DEFAULT);
+        let layers_2 = gravity_layer_2.unwrap_or(&GravityLayers::DEFAULT);
 
-                let dist = diff_vector.length();
+        // If layer one applies gravity to layer two
+        if layers_1.interacts_with(*layers_2) {
+            let diff_vector = transform1.translation.xy() - transform2.translation.xy();
 
-                // This is still necessary for some reason
-                // It throws quite the ambigous error when not included
-                // Something along the lines of:
-                // "The given sine and cosine produce an invalid rotation"
-                // Probably has to do with normalization, might look into it
+            let dist = diff_vector.length();
 
-                if dist > 0.01 {
-                    velocity.0 += diff_vector.normalize()
-                        * (gravitated_mass.0 * mass.0 / dist.powi(2))
-                        * 10000.0
-                        * GRAVITATIONAL_CONSTANT
-                        * time.delta_secs()
-                }
+            if dist > 0.01 {
+                velocity2.0 += diff_vector.normalize()
+                    * (mass1.0 * mass2.0 / dist.powi(2))
+                    * 10000.0
+                    * GRAVITATIONAL_CONSTANT
+                    * time.delta_secs()
+            }
+        }
+
+        // If layer two applies gravity to layer one
+        if layers_2.interacts_with(*layers_1) {
+            let diff_vector = transform2.translation.xy() - transform1.translation.xy();
+
+            let dist = diff_vector.length();
+
+            if dist > 0.01 {
+                velocity1.0 += diff_vector.normalize()
+                    * (mass1.0 * mass2.0 / dist.powi(2))
+                    * 10000.0
+                    * GRAVITATIONAL_CONSTANT
+                    * time.delta_secs()
             }
         }
     }

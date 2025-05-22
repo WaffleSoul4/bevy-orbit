@@ -1,72 +1,116 @@
-use crate::serialization;
+use crate::{
+    cursor::CursorPosition, gravity::{Gravity, GravityLayer, GravityLayers}, serialization::{
+        self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
+    }, state_is, GameLayer, LevelObject
+};
+use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts,
     egui::{self},
 };
 
+#[derive(Bundle)]
+struct LevelObjectBundle {
+    transform: Transform,
+    mesh: SerializableMesh,
+    material: SerilializableMeshMaterial,
+    mass: Mass,
+    gravity: Gravity,
+    collider: SerializableCollider,
+    rigid_body: RigidBody,
+    gravity_layers: GravityLayers,
+    velocity: LinearVelocity,
+    level_object: LevelObject,
+    game_serializable: GameSerializable,
+}
+
+impl LevelObjectBundle {
+    fn from_circle(value: Circle) -> Self {
+        LevelObjectBundle {
+            mesh: SerializableMesh::primitive(value.clone()),
+            collider: SerializableCollider::from(value.clone()),
+            ..default()
+        }
+    }
+
+    fn with_translation(mut self, translation: Vec3) -> Self {
+        self.transform.translation = translation;
+        self
+    }
+
+    fn with_translation_2d(self, translation: Vec2) -> Self {
+        self.with_translation(translation.extend(0.0))
+    }
+
+    fn with_velocity(mut self, velocity: Vec2) -> Self {
+        self.velocity = LinearVelocity(velocity);
+        self.rigid_body = RigidBody::Dynamic;
+        self
+    }
+}
+
+impl Default for LevelObjectBundle {
+    fn default() -> Self {
+        LevelObjectBundle {
+            transform: Transform::from_translation(Vec3::ZERO),
+            mesh: SerializableMesh::primitive(Circle::new(10.0)),
+            material: SerilializableMeshMaterial::color(Color::oklab(1.0, 0.7, 0.3)),
+            mass: Mass(5.0),
+            gravity: Gravity,
+            collider: SerializableCollider::new(ColliderConstructor::Circle { radius: 10.0 }),
+            rigid_body: RigidBody::Static,
+            gravity_layers: GravityLayers::new(
+                [GravityLayer::Level],
+                [GravityLayer::Main, GravityLayer::Level],
+            ),
+            velocity: LinearVelocity(Vec2::ZERO),
+            level_object: LevelObject,
+            game_serializable: GameSerializable,
+        }
+    }
+}
+
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<CreateObject>();
+        app
+            .add_systems(Update, editor_input_handler.run_if(state_is(crate::GameState::Editor)));
     }
 }
 
-#[derive(Event, Clone, Copy)]
-pub enum CreateObject {
-    Static {
-        mass: f32,
-        position: Vec2,
-        radius: f32,
-    },
-    Dynamic {
-        mass: f32,
-        position: Vec2,
-        radius: f32,
-        gravitable: bool,
-        gravitator: bool,
-        selected: bool,
-    },
-    Trigger {
-        position: Vec2,
-    },
-}
 
-impl CreateObject {
-    pub fn new_static(mass: f32, position: Vec2, radius: f32) -> Self {
-        CreateObject::Static {
-            mass,
-            position,
-            radius,
-        }
-    }
-
-    pub fn new_dynamic(mass: f32, position: Vec2, radius: f32) -> Self {
-        CreateObject::Dynamic {
-            mass,
-            position,
-            radius,
-            gravitable: true,
-            gravitator: true,
-            selected: false,
-        }
-    }
-
-    pub fn new_trigger(position: Vec2) -> Self {
-        CreateObject::Trigger { position }
-    }
-
-    // Only run this on dynamics please <3
-    pub fn set_selected(&mut self) -> &mut Self {
-        match self {
-            CreateObject::Dynamic { selected, .. } => {
-                *selected = true;
+pub fn editor_input_handler(
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    cursor_position: Res<CursorPosition>,
+    mut commands: Commands,
+) {
+    if let Some(cursor_position) = **cursor_position {
+        if keys.pressed(KeyCode::ShiftLeft) {
+            // Stuff will go here!
+        } else {
+            if mouse.just_pressed(MouseButton::Right) {
+                commands.spawn(
+                    LevelObjectBundle::from_circle(Circle::new(10.0))
+                        .with_translation_2d(cursor_position),
+                );
             }
-            _ => panic!("Called set_select on a non-dynamic object"),
-        }
 
-        self
+            if keys.just_pressed(KeyCode::KeyZ) {
+                // I'll add a bundle for this later
+                commands.spawn((
+                    SerializableMesh::primitive(Circle::new(10.0)),
+                    Transform::from_translation(cursor_position.extend(-1.0)),
+                    SerilializableMeshMaterial::color(Color::srgb(0.1, 0.3, 0.7)),
+                    crate::Trigger::new(false),
+                    SerializableCollider::new(ColliderConstructor::Circle { radius: 10.0 }),
+                    CollisionLayers::new(GameLayer::Triggers, [GameLayer::Main]),
+                    GameSerializable,
+                ));
+            }
+        }
     }
 }
 
@@ -74,8 +118,8 @@ pub fn side_menu(
     mut contexts: EguiContexts,
     window: Single<&Window>,
     mut camera: Single<&mut Camera, With<crate::camera::GameCamera>>,
-    mut load_events: EventWriter<serialization::LoadEvent>,
     mut save_events: EventWriter<serialization::SaveEvent>,
+    serialization_data: Res<serialization::LevelSerializationData>,
 ) {
     // It makes the code look so much better
     use std::ops::Mul;
@@ -89,12 +133,11 @@ pub fn side_menu(
             ui.horizontal(|ui| {
                 if ui.button("Save level").clicked() {
                     save_events.write(serialization::SaveEvent::new(
-                        "assets/test_levels/level2.scn.ron",
-                        "Abcdefg",
+                        serialization_data.path.clone(),
                     ));
                 }
                 if ui.button("Load level").clicked() {
-                    load_events.write(serialization::LoadEvent::new("test_levels/level2.scn.ron"));
+                    warn!("Nothing here yet!");
                 }
             });
 

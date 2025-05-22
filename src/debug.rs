@@ -76,7 +76,7 @@ impl Default for DebugSettings {
     fn default() -> Self {
         DebugSettings {
             show_inspector: false,
-            show_ui: true,
+            show_ui: false,
             show_velocity_arrows: false,
             grid_settings: GridSettings::default(),
         }
@@ -196,7 +196,7 @@ pub fn draw_velocity_arrows(
     mut gizmos: Gizmos,
     mouse_pos: Res<crate::cursor::CursorPosition>,
     dynamic_object_query: Query<(&LinearVelocity, &Transform), With<Mesh2d>>,
-    selected_object_query: Query<&Transform, With<crate::Selected>>,
+    selected_object_query: Query<&Transform, With<crate::Launching>>,
 ) {
     dynamic_object_query
         .iter()
