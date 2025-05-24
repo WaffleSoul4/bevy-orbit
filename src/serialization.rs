@@ -26,7 +26,7 @@ impl Plugin for SerializationPlugin {
 type InternalSerializableTypes = (
     crate::gravity::Gravity,
     crate::gravity::GravityLayers,
-    crate::Trigger,
+    crate::game::GameTrigger,
     crate::LevelObject,
     crate::DynamicObject,
     SerializableCollider,
@@ -104,7 +104,7 @@ pub fn load_active_level(
     asset_server: Res<AssetServer>,
 ) {
     info!(
-        "Loaded level as scene from '{:?}'",
+        "Loaded level as scene from {:?}",
         level_serialization_data.path
     );
 
@@ -145,7 +145,7 @@ fn serialize_objects(
             // Internal types
             .allow_component::<crate::gravity::Gravity>()
             .allow_component::<crate::gravity::GravityLayers>()
-            .allow_component::<crate::Trigger>()
+            .allow_component::<crate::game::GameTrigger>()
             .allow_component::<crate::LevelObject>()
             .allow_component::<crate::DynamicObject>()
             .allow_component::<SerializableCollider>()
@@ -157,7 +157,6 @@ fn serialize_objects(
             .allow_component::<avian2d::prelude::CollisionLayers>()
             .allow_component::<avian2d::prelude::Mass>()
             .allow_component::<avian2d::prelude::RigidBody>();
-
         let scene = scene_builder.extract_entities(entities.iter()).build();
 
         // info!(
@@ -235,9 +234,15 @@ pub fn remove_level_entities(
     mut commands: Commands,
     level_entities: Query<Entity, With<GameSerializable>>,
 ) {
-    level_entities
-        .iter()
-        .for_each(|entity| commands.entity(entity).despawn());
+    level_entities.iter().for_each(|entity| {
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands
+                .try_remove::<crate::game::Triggered>() // Hacky fix! Despawning these entities is annoying
+                .despawn();
+
+            // info!("Despawned {}", entity_commands.id())
+        }
+    });
 }
 
 // This is just a resilient version of ColliderConstructor

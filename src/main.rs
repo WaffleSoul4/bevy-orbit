@@ -4,9 +4,18 @@ use bevy::{
     prelude::*,
 };
 use bevy_orbit::{
-    camera::{restore_viewport, CameraPlugin}, cursor::CursorPlugin, debug::{toggle_debug_ui, DebugPlugin}, editor::{side_menu, EditorPlugin}, game::game_input_handler, gravity::GravityPlugin, serialization::{
-        load_active_level, remove_active_level, remove_level_entities, spawn_temp_scene, SerializationPlugin
-    }, GameState::*, *
+    GameState::*,
+    camera::{CameraPlugin, restore_viewport},
+    cursor::CursorPlugin,
+    debug::{DebugPlugin, toggle_debug_ui},
+    editor::{EditorPlugin, side_menu},
+    game::{clear_triggered_indicators, game_input_handler, initialize_triggered_indicators},
+    gravity::GravityPlugin,
+    serialization::{
+        SerializationPlugin, load_active_level, remove_active_level, remove_level_entities,
+        spawn_temp_scene,
+    },
+    *,
 };
 
 fn main() {
@@ -30,7 +39,7 @@ fn main() {
                 game_input_handler
                     .run_if(state_is(Play))
                     .run_if(not(input_pressed(KeyCode::ShiftLeft))),
-                launch_launching.run_if(input_just_released(MouseButton::Left))
+                launch_launching.run_if(input_just_released(MouseButton::Left)),
             ),
         )
         // Miscellaeneous systems
@@ -42,7 +51,8 @@ fn main() {
                     .run_if(input_just_pressed(KeyCode::Backquote)),
                 toggle_debug_ui.run_if(input_just_pressed(KeyCode::KeyQ)),
                 side_menu.run_if(state_is(Editor)),
-                update_triggers,
+                (initialize_triggered_indicators, clear_triggered_indicators)
+                    .run_if(state_is(Play)),
             ),
         )
         // Serialization bindings

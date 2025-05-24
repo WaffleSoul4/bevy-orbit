@@ -1,13 +1,17 @@
 use crate::{
-    cursor::CursorPosition, gravity::{Gravity, GravityLayer, GravityLayers}, serialization::{
+    LevelObject,
+    cursor::CursorPosition,
+    game::{GameTriggerBundle, Triggered},
+    gravity::{Gravity, GravityLayer, GravityLayers},
+    serialization::{
         self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
-    }, state_is, GameLayer, LevelObject
+    },
+    state_is,
 };
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_egui::{
-    EguiContexts,
-    egui::{self},
+    egui::{self, epaint::tessellator::path}, EguiContexts
 };
 
 #[derive(Bundle)]
@@ -75,11 +79,12 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, editor_input_handler.run_if(state_is(crate::GameState::Editor)));
+        app.add_systems(
+            Update,
+            editor_input_handler.run_if(state_is(crate::GameState::Editor)),
+        );
     }
 }
-
 
 pub fn editor_input_handler(
     keys: Res<ButtonInput<KeyCode>>,
@@ -100,15 +105,7 @@ pub fn editor_input_handler(
 
             if keys.just_pressed(KeyCode::KeyZ) {
                 // I'll add a bundle for this later
-                commands.spawn((
-                    SerializableMesh::primitive(Circle::new(10.0)),
-                    Transform::from_translation(cursor_position.extend(-1.0)),
-                    SerilializableMeshMaterial::color(Color::srgb(0.1, 0.3, 0.7)),
-                    crate::Trigger::new(false),
-                    SerializableCollider::new(ColliderConstructor::Circle { radius: 10.0 }),
-                    CollisionLayers::new(GameLayer::Triggers, [GameLayer::Main]),
-                    GameSerializable,
-                ));
+                commands.spawn(GameTriggerBundle::default().with_position(cursor_position));
             }
         }
     }
@@ -119,7 +116,7 @@ pub fn side_menu(
     window: Single<&Window>,
     mut camera: Single<&mut Camera, With<crate::camera::GameCamera>>,
     mut save_events: EventWriter<serialization::SaveEvent>,
-    serialization_data: Res<serialization::LevelSerializationData>,
+    mut serialization_data: ResMut<serialization::LevelSerializationData>,
 ) {
     // It makes the code look so much better
     use std::ops::Mul;
@@ -129,19 +126,26 @@ pub fn side_menu(
     let ui_width = egui::SidePanel::left("Editor Panel")
         .resizable(true)
         .show(contexts, |ui| {
-            ui.label("This will be where the editor is!");
+            let mut path_buffer = serialization_data.path.display().to_string();
+
+            ui.text_edit_singleline(&mut path_buffer);
             ui.horizontal(|ui| {
+                
                 if ui.button("Save level").clicked() {
                     save_events.write(serialization::SaveEvent::new(
                         serialization_data.path.clone(),
                     ));
                 }
+
                 if ui.button("Load level").clicked() {
                     warn!("Nothing here yet!");
                 }
+
             });
 
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
+
+            serialization_data.path = path_buffer.into();
         })
         .response
         .rect
