@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{
     DynamicObject, GameLayer, Launching,
     cursor::CursorPosition,
@@ -92,6 +94,7 @@ pub struct DynamicObjectBundle {
     mass: Mass,
     velocity: LinearVelocity,
     rigid_body: RigidBody,
+    traceable: Traceable,
 }
 
 impl From<&LaunchingObjectConfig> for DynamicObjectBundle {
@@ -102,6 +105,7 @@ impl From<&LaunchingObjectConfig> for DynamicObjectBundle {
             mass: Mass(config.mass),
             velocity: LinearVelocity(Vec2::ZERO),
             rigid_body: RigidBody::Dynamic,
+            traceable: Traceable,
         }
     }
 }
@@ -200,6 +204,7 @@ impl GameTriggerBundle {
 pub struct Triggered;
 
 // Using system here is just so much easier and less error prone
+#[allow(dead_code)]
 fn clean_trigger_indicator(mut world: DeferredWorld, context: HookContext) {
     world
         .commands()
@@ -247,5 +252,110 @@ pub fn initialize_triggered_indicators(
         commands.entity(entity).add_child(child);
 
         // info!("Spawned child of trigger {}", entity)
+    });
+}
+
+#[derive(Component)]
+pub struct Traceable;
+
+// Traces the path of an entity and spawns the path as its children
+#[derive(Component)]
+#[component(on_add = get_starting_position)]
+pub struct PathTracer {
+    previous: Vec2,
+    precision: u32, // Zero is every frame
+    min_length: f32,
+    precision_counter: u32,
+    target: Entity,
+}
+
+// Mmm tasty scopes
+fn get_starting_position(mut world: DeferredWorld, context: HookContext) {
+    let tracer_target_entity = {
+        let mut tracer_commands = world.entity_mut(context.entity);
+
+        tracer_commands
+            .get_mut::<PathTracer>()
+            .expect("What...")
+            .target
+            .clone()
+    };
+
+    let target_transform = {
+        world
+            .get_entity(tracer_target_entity)
+            .expect("Invalid target entity found for tracer")
+            .get::<Transform>()
+            .expect("Tracer target doesn't have a transfor to trace")
+            .clone()
+    };
+
+    // Duplication out of necessity
+
+    let mut tracer_commands = world.entity_mut(context.entity);
+
+    let mut tracer = tracer_commands
+        .get_mut::<PathTracer>()
+        .expect("This is a hook for if this component was added ofc it's here");
+
+    tracer.previous = target_transform.translation.xy();
+}
+
+impl PathTracer {
+    pub fn new(target: Entity) -> Self {
+        PathTracer {
+            previous: Vec2::ZERO,
+            precision: 1, // Every other frame
+            min_length: 3.0,
+            precision_counter: 0,
+            target,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct PathSegment;
+
+pub fn trace_object_paths(
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut commands: Commands,
+    mut tracers: Query<(Entity, &mut PathTracer)>,
+    traceable: Query<&GlobalTransform, With<Traceable>>,
+) {
+    tracers.iter_mut().for_each(|(entity, mut tracer)| {
+        if tracer.precision_counter >= tracer.precision {
+            let transform = traceable
+                .get(tracer.target)
+                .expect("Tracer points to an invalid entity!");
+
+            let difference = transform.translation().xy() - tracer.previous;
+
+            if difference.length() > tracer.min_length {
+                let length = difference.length() * 1.5;
+
+                let rectangle = Rectangle::from_size(Vec2::new(2.0, length));
+
+                let angle = difference.to_angle() + PI / 2.0; // Add 90 degrees
+
+                let segment = commands
+                    .spawn((
+                        MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
+                        Mesh2d(meshes.add(rectangle)),
+                        Transform::from_rotation(Quat::from_rotation_z(angle))
+                            .with_translation(transform.translation().xy().extend(-1.0)),
+                        PathSegment,
+                    ))
+                    .id();
+
+                commands.entity(entity).add_child(segment);
+
+                tracer.previous = transform.translation().xy();
+            }
+
+            tracer.precision_counter = 0;
+        } else {
+            tracer.precision_counter += 1;
+        }
     });
 }

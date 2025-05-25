@@ -9,7 +9,10 @@ use bevy_orbit::{
     cursor::CursorPlugin,
     debug::{DebugPlugin, toggle_debug_ui},
     editor::{EditorPlugin, side_menu},
-    game::{clear_triggered_indicators, game_input_handler, initialize_triggered_indicators},
+    game::{
+        clear_triggered_indicators, game_input_handler, initialize_triggered_indicators,
+        trace_object_paths,
+    },
     gravity::GravityPlugin,
     serialization::{
         SerializationPlugin, load_active_level, remove_active_level, remove_level_entities,
@@ -53,6 +56,7 @@ fn main() {
                 side_menu.run_if(state_is(Editor)),
                 (initialize_triggered_indicators, clear_triggered_indicators)
                     .run_if(state_is(Play)),
+                trace_object_paths,
             ),
         )
         // Serialization bindings

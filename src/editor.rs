@@ -11,7 +11,8 @@ use crate::{
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{self, epaint::tessellator::path}, EguiContexts
+    EguiContexts,
+    egui::{self},
 };
 
 #[derive(Bundle)]
@@ -130,7 +131,6 @@ pub fn side_menu(
 
             ui.text_edit_singleline(&mut path_buffer);
             ui.horizontal(|ui| {
-                
                 if ui.button("Save level").clicked() {
                     save_events.write(serialization::SaveEvent::new(
                         serialization_data.path.clone(),
@@ -140,7 +140,6 @@ pub fn side_menu(
                 if ui.button("Load level").clicked() {
                     warn!("Nothing here yet!");
                 }
-
             });
 
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());

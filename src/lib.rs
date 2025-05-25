@@ -65,10 +65,16 @@ pub fn launch_launching(
             let dif =
                 transform.translation.xy() - cursor_position.unwrap_or(transform.translation.xy());
 
-            commands
+            let launched = commands
                 .entity(entity)
                 .insert(DynamicObjectBundle::new(config, dif))
-                .remove::<Launching>();
+                .remove::<Launching>()
+                .id();
+
+            commands.spawn((
+                game::PathTracer::new(launched),
+                Transform::from_translation(Vec3::ZERO),
+            ));
         });
 }
 
@@ -81,7 +87,13 @@ pub fn clear_level(mut commands: Commands, query: Query<Entity, With<GameSeriali
 // This is  the one that runs during the game
 pub fn reset_level(
     mut commands: Commands,
-    remove_query: Query<Entity, (With<LinearVelocity>, Without<GameSerializable>)>,
+    remove_query: Query<
+        Entity,
+        Or<(
+            (With<LinearVelocity>, Without<GameSerializable>),
+            With<game::PathTracer>,
+        )>,
+    >,
     mut trigger_query: Query<Entity, With<game::Triggered>>,
 ) {
     remove_query
