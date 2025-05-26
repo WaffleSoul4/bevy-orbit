@@ -10,8 +10,8 @@ use bevy_orbit::{
     debug::{DebugPlugin, toggle_debug_ui},
     editor::{EditorPlugin, side_menu},
     game::{
-        clear_triggered_indicators, game_input_handler, initialize_triggered_indicators,
-        trace_object_paths,
+        DeathEvent, clear_triggered_indicators, game_input_handler,
+        initialize_triggered_indicators, trace_object_paths,
     },
     gravity::GravityPlugin,
     serialization::{
@@ -33,6 +33,7 @@ fn main() {
             SerializationPlugin,
             PhysicsPlugins::default(),
         ))
+        .add_event::<DeathEvent>()
         // Startup Systems
         .add_systems(Startup, setup)
         // Keybind systems

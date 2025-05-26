@@ -27,6 +27,7 @@ type InternalSerializableTypes = (
     crate::gravity::Gravity,
     crate::gravity::GravityLayers,
     crate::game::GameTrigger,
+    crate::game::KillOnCollision,
     crate::LevelObject,
     crate::DynamicObject,
     SerializableCollider,
@@ -146,6 +147,7 @@ fn serialize_objects(
             .allow_component::<crate::gravity::Gravity>()
             .allow_component::<crate::gravity::GravityLayers>()
             .allow_component::<crate::game::GameTrigger>()
+            .allow_component::<crate::game::KillOnCollision>()
             .allow_component::<crate::LevelObject>()
             .allow_component::<crate::DynamicObject>()
             .allow_component::<SerializableCollider>()

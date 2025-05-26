@@ -1,12 +1,7 @@
 use crate::{
-    LevelObject,
-    cursor::CursorPosition,
-    game::{GameTriggerBundle, Triggered},
-    gravity::{Gravity, GravityLayer, GravityLayers},
-    serialization::{
+    cursor::CursorPosition, game::{GameTriggerBundle, KillOnCollision}, gravity::{Gravity, GravityLayer, GravityLayers}, serialization::{
         self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
-    },
-    state_is,
+    }, state_is, LevelObject
 };
 use avian2d::prelude::*;
 use bevy::prelude::*;
@@ -28,6 +23,7 @@ struct LevelObjectBundle {
     velocity: LinearVelocity,
     level_object: LevelObject,
     game_serializable: GameSerializable,
+    kill_on_collision: KillOnCollision,
 }
 
 impl LevelObjectBundle {
@@ -72,6 +68,7 @@ impl Default for LevelObjectBundle {
             velocity: LinearVelocity(Vec2::ZERO),
             level_object: LevelObject,
             game_serializable: GameSerializable,
+            kill_on_collision: KillOnCollision,
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use crate::{
-    DynamicObject, GameLayer, Launching,
+    DynamicObject, GameLayer, Launching, add_observer_on_hook,
     cursor::CursorPosition,
     gravity::{Gravity, GravityLayers},
     serialization::{
@@ -95,6 +95,8 @@ pub struct DynamicObjectBundle {
     velocity: LinearVelocity,
     rigid_body: RigidBody,
     traceable: Traceable,
+    death_events_enabled: DeathEventsEnabled,
+    die_on_collision: DieOnCollision,
 }
 
 impl From<&LaunchingObjectConfig> for DynamicObjectBundle {
@@ -106,6 +108,8 @@ impl From<&LaunchingObjectConfig> for DynamicObjectBundle {
             velocity: LinearVelocity(Vec2::ZERO),
             rigid_body: RigidBody::Dynamic,
             traceable: Traceable,
+            death_events_enabled: DeathEventsEnabled,
+            die_on_collision: DieOnCollision,
         }
     }
 }
@@ -265,8 +269,10 @@ pub struct PathTracer {
     previous: Vec2,
     precision: u32, // Zero is every frame
     min_length: f32,
+    width: f32,
+    color: Color,
     precision_counter: u32,
-    target: Entity,
+    target: Option<Entity>, // No entity means disabled
 }
 
 // Mmm tasty scopes
@@ -283,7 +289,9 @@ fn get_starting_position(mut world: DeferredWorld, context: HookContext) {
 
     let target_transform = {
         world
-            .get_entity(tracer_target_entity)
+            .get_entity(
+                tracer_target_entity.expect("Please provide a target when initializing tracers"),
+            )
             .expect("Invalid target entity found for tracer")
             .get::<Transform>()
             .expect("Tracer target doesn't have a transfor to trace")
@@ -307,8 +315,10 @@ impl PathTracer {
             previous: Vec2::ZERO,
             precision: 1, // Every other frame
             min_length: 3.0,
+            width: 2.0,
+            color: Color::srgb(0.1, 0.3, 0.7),
             precision_counter: 0,
-            target,
+            target: Some(target),
         }
     }
 }
@@ -323,39 +333,99 @@ pub fn trace_object_paths(
     mut tracers: Query<(Entity, &mut PathTracer)>,
     traceable: Query<&GlobalTransform, With<Traceable>>,
 ) {
-    tracers.iter_mut().for_each(|(entity, mut tracer)| {
-        if tracer.precision_counter >= tracer.precision {
-            let transform = traceable
-                .get(tracer.target)
-                .expect("Tracer points to an invalid entity!");
+    tracers
+        .iter_mut()
+        .filter(|(_, tracer)| tracer.target.is_some())
+        .for_each(|(entity, mut tracer)| {
+            if tracer.precision_counter >= tracer.precision {
+                match traceable.get(tracer.target.unwrap()) {
+                    Ok(transform) => {
+                        let difference = transform.translation().xy() - tracer.previous;
 
-            let difference = transform.translation().xy() - tracer.previous;
+                        if difference.length() > tracer.min_length {
+                            let length = difference.length() * 1.5;
 
-            if difference.length() > tracer.min_length {
-                let length = difference.length() * 1.5;
+                            let rectangle = Rectangle::from_size(Vec2::new(tracer.width, length));
 
-                let rectangle = Rectangle::from_size(Vec2::new(2.0, length));
+                            let angle = difference.to_angle() + PI / 2.0; // Add 90 degrees
 
-                let angle = difference.to_angle() + PI / 2.0; // Add 90 degrees
+                            let segment = commands
+                                .spawn((
+                                    MeshMaterial2d(materials.add(tracer.color)),
+                                    Mesh2d(meshes.add(rectangle)),
+                                    Transform::from_rotation(Quat::from_rotation_z(angle))
+                                        .with_translation(
+                                            transform.translation().xy().extend(-1.0),
+                                        ),
+                                    PathSegment,
+                                ))
+                                .id();
 
-                let segment = commands
-                    .spawn((
-                        MeshMaterial2d(materials.add(Color::srgb(0.1, 0.3, 0.7))),
-                        Mesh2d(meshes.add(rectangle)),
-                        Transform::from_rotation(Quat::from_rotation_z(angle))
-                            .with_translation(transform.translation().xy().extend(-1.0)),
-                        PathSegment,
-                    ))
-                    .id();
+                            commands.entity(entity).add_child(segment);
 
-                commands.entity(entity).add_child(segment);
+                            tracer.previous = transform.translation().xy();
+                        }
+                    }
+                    Err(e) => {
+                        info!("Tracer failed to find target: {}, Disabling", e);
 
-                tracer.previous = transform.translation().xy();
+                        tracer.target = None;
+                    }
+                }
+
+                tracer.precision_counter = 0;
+            } else {
+                tracer.precision_counter += 1;
             }
+        });
+}
 
-            tracer.precision_counter = 0;
-        } else {
-            tracer.precision_counter += 1;
-        }
-    });
+#[derive(Debug)]
+pub enum DeathSource {
+    Reset,
+    Collision,
+}
+
+/// Defines whether an entity can give a death event (it can die)
+#[derive(Component)]
+#[component(on_add = add_observer_on_hook(death_event_handler))]
+pub struct DeathEventsEnabled;
+
+/// Defines whether an entity can kill entities with death events enabled on collision
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct KillOnCollision;
+
+
+/// Defines whether an entity will die upon collision (I might replace this with a DeathLayers thing later)
+#[derive(Component)]
+#[component(on_add = add_observer_on_hook(collision_observer))]
+#[require(CollisionEventsEnabled)]
+pub struct DieOnCollision;
+
+fn collision_observer(
+    trigger: Trigger<OnCollisionStart>,
+    mut commands: Commands,
+    query: Query<(), With<KillOnCollision>>,
+) {
+    if query.contains(trigger.collider) {
+        commands.trigger_targets(DeathEvent::new(DeathSource::Collision), trigger.target());
+    }
+}
+
+fn death_event_handler(trigger: Trigger<DeathEvent>, mut commands: Commands) {
+    info!("Object died from {:?}", trigger.source);
+
+    commands.entity(trigger.target()).despawn();
+}
+
+#[derive(Event, Debug)]
+pub struct DeathEvent {
+    source: DeathSource,
+}
+
+impl DeathEvent {
+    pub fn new(source: DeathSource) -> Self {
+        DeathEvent { source }
+    }
 }
