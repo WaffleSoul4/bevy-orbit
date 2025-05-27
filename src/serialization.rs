@@ -1,5 +1,10 @@
-use bevy::{prelude::*, reflect::TypeRegistry};
+use avian2d::prelude::ColliderConstructor;
+use bevy::{
+    asset::RenderAssetUsages, prelude::*, reflect::TypeRegistry, render::mesh::PrimitiveTopology,
+};
 use std::{fs::File, path::PathBuf};
+
+use crate::{cursor::CursorPosition, game::KillOnCollision};
 
 pub struct SerializationPlugin;
 
@@ -34,6 +39,7 @@ type InternalSerializableTypes = (
     SerializableMesh,
     SerializableMeshPrimitives,
     SerilializableMeshMaterial,
+    SerializableZoneBuilder,
     GameSerializable,
 );
 
@@ -153,6 +159,7 @@ fn serialize_objects(
             .allow_component::<SerializableCollider>()
             .allow_component::<SerializableMesh>()
             .allow_component::<SerilializableMeshMaterial>()
+            .allow_component::<SerializableZoneBuilder>()
             .allow_component::<GameSerializable>()
             // External types
             .allow_component::<Transform>()
@@ -266,6 +273,159 @@ impl From<Circle> for SerializableCollider {
     }
 }
 
+impl Into<ColliderConstructor> for SerializableZoneBuilder {
+    fn into(self) -> ColliderConstructor {
+        let mut indices: Vec<[u32; 3]> = vec![];
+
+        for i in 0..=self.0.indices.len() / 3 - 1 {
+            indices.push(self.0.indices[i * 3..i * 3 + 3].try_into().unwrap())
+        }
+
+        ColliderConstructor::Trimesh {
+            vertices: self.0.vertices,
+            indices,
+        }
+    }
+}
+
+#[derive(Component, Default, Clone, Reflect)]
+#[reflect(Component)]
+pub struct SerializableZoneBuilder(pub SerializableZone);
+
+impl SerializableZoneBuilder {
+    fn insert_point(&mut self, point: Vec2) {
+        self.0.vertices.push(point);
+    }
+
+    fn get_center(&self) -> Vec2 {
+        let mut iterator = self.0.vertices.iter();
+
+        iterator.next(); // Ignore the first thing 
+
+        iterator.fold(Vec2::ZERO, |acc, pos| acc + pos) / (self.0.vertices.len() as f32 - 1.0)
+    }
+
+    // Always draws lines to well.. the center (hence the naive)
+    // Am I figuring out how to correctly generate indices??? No!
+    // If you're sad that this doesn't work perfectly, too bad!
+    fn build_indicies_naive(mut self) -> (Self, Vec2) {
+        let center = self.get_center();
+
+        self.0.vertices[0] = center;
+
+        self.0
+            .vertices
+            .iter_mut()
+            .for_each(|vertice| *vertice -= center);
+
+        for i in 1..(self.0.vertices.len() - 1) as u32 {
+            self.0.indices.push(0);
+            self.0.indices.push(i);
+            self.0.indices.push(i + 1);
+        }
+
+        self.0.indices.push(0);
+        self.0.indices.push(self.0.vertices.len() as u32 - 1);
+        self.0.indices.push(1);
+
+        (self, center)
+    }
+}
+
+// Bevy why do I need another type for this help meeeee
+struct SerializableZoneMeshBuilder(SerializableZone);
+
+impl MeshBuilder for SerializableZoneMeshBuilder {
+    fn build(&self) -> Mesh {
+        if self.0.vertices.len() <= 2 {
+            panic!("Not enough vertices to form a zone")
+        }
+
+        if self.0.indices.len() <= 2 {
+            panic!("Not enough indices to form a zone")
+        }
+
+        let normals = vec![[0.0, 0.0, 1.0]; self.0.vertices.len()];
+
+        Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        )
+        .with_inserted_attribute(
+            Mesh::ATTRIBUTE_POSITION,
+            self.0
+                .vertices
+                .iter()
+                .map(|vertice| vertice.extend(0.0))
+                .collect::<Vec<Vec3>>()
+                .clone(),
+        )
+        .with_inserted_indices(bevy::render::mesh::Indices::U32(self.0.indices.clone()))
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+    }
+}
+
+impl Into<SerializableZone> for SerializableZoneBuilder {
+    fn into(self) -> SerializableZone {
+        self.0
+    }
+}
+
+pub fn convert_zone_builders(
+    mut commands: Commands,
+    builders: Query<(Entity, &SerializableZoneBuilder)>,
+) {
+    builders.iter().for_each(|(entity, builder)| {
+        let mut entity_commands = commands.entity(entity);
+
+        let (zone, center) = builder.clone().build_indicies_naive();
+        entity_commands
+            .insert((
+                SerializableMesh::zone(zone.clone()),
+                SerializableCollider::new(zone.clone().into()),
+                Transform::from_translation(center.extend(-1.0)),
+                SerilializableMeshMaterial::color(Color::srgba(0.8, 0.1, 0.3, 0.3)),
+                GameSerializable,
+                KillOnCollision,
+            ))
+            .remove::<SerializableZoneBuilder>();
+    })
+}
+
+pub fn initialize_zone_builder(mut commands: Commands) {
+    commands.spawn(SerializableZoneBuilder::default());
+}
+
+pub fn zone_creation_input_handler(
+    mut zone_builder: Single<&mut SerializableZoneBuilder>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    cursor_pos: Res<CursorPosition>,
+    mut commands: Commands,
+) {
+    if let Some(cursor_pos) = **cursor_pos {
+        if mouse.just_pressed(MouseButton::Left) {
+            zone_builder.insert_point(cursor_pos);
+        }
+    }
+}
+
+#[derive(Reflect, Clone)]
+pub struct SerializableZone {
+    vertices: Vec<Vec2>,
+    // What order the points should be drawn in
+    indices: Vec<u32>,
+}
+
+impl Default for SerializableZone {
+    fn default() -> Self {
+        SerializableZone {
+            vertices: vec![Vec2::ZERO],
+            indices: vec![],
+        }
+    }
+}
+
 // I don't think it's possible to use data from inside the component when registering required components
 pub fn initialize_colliders(
     colliders: Query<
@@ -317,11 +477,12 @@ pub enum SerializableMesh {
     Mesh { mesh: Mesh },
     // This is preferable to mesh
     Primitive { shape: SerializableMeshPrimitives },
+    Zone { zone: SerializableZone },
 }
 
 #[derive(Clone, Reflect)]
 pub enum SerializableMeshPrimitives {
-    Circle(Circle), // This is the only one we need for now
+    Circle(Circle),
 }
 
 impl From<Circle> for SerializableMeshPrimitives {
@@ -352,10 +513,14 @@ impl SerializableMesh {
             shape: shape.into(),
         }
     }
+
+    pub fn zone<T: Into<SerializableZone>>(zone: T) -> Self {
+        SerializableMesh::Zone { zone: zone.into() }
+    }
 }
 
 // NOTE: Directly using meshes causes deserialization to fail because of a divide by zero
-// Somehow, somewhere, somebody sets the one of the mesh vetex buffer layouts'
+// Somehow, somewhere, somebody sets the one of the mesh vertex buffer layouts'
 // size to zero, which causes a failure in a division when allocating memory
 
 fn initialize_meshes(
@@ -378,6 +543,11 @@ fn initialize_meshes(
             }
             SerializableMesh::Primitive { shape } => {
                 entity_commands.insert(Mesh2d(meshes.add(shape.clone())))
+            }
+            SerializableMesh::Zone { zone } => {
+                let mesh: Mesh = SerializableZoneMeshBuilder(zone.clone()).build();
+
+                entity_commands.insert(Mesh2d(meshes.add(mesh)))
             }
         };
     });

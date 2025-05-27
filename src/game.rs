@@ -321,6 +321,14 @@ impl PathTracer {
             target: Some(target),
         }
     }
+
+    pub fn increment(&mut self) {
+        self.precision_counter += 1
+    }
+
+    pub fn reset(&mut self) {
+        self.precision_counter = 0
+    }
 }
 
 #[derive(Component)]
@@ -373,9 +381,9 @@ pub fn trace_object_paths(
                     }
                 }
 
-                tracer.precision_counter = 0;
+                tracer.reset();
             } else {
-                tracer.precision_counter += 1;
+                tracer.increment();
             }
         });
 }
@@ -395,7 +403,6 @@ pub struct DeathEventsEnabled;
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct KillOnCollision;
-
 
 /// Defines whether an entity will die upon collision (I might replace this with a DeathLayers thing later)
 #[derive(Component)]

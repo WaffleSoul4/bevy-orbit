@@ -1,7 +1,12 @@
 use crate::{
-    cursor::CursorPosition, game::{GameTriggerBundle, KillOnCollision}, gravity::{Gravity, GravityLayer, GravityLayers}, serialization::{
+    LevelObject,
+    cursor::CursorPosition,
+    game::{GameTriggerBundle, KillOnCollision},
+    gravity::{Gravity, GravityLayer, GravityLayers},
+    serialization::{
         self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
-    }, state_is, LevelObject
+    },
+    state_is,
 };
 use avian2d::prelude::*;
 use bevy::prelude::*;

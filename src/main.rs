@@ -15,8 +15,8 @@ use bevy_orbit::{
     },
     gravity::GravityPlugin,
     serialization::{
-        SerializationPlugin, load_active_level, remove_active_level, remove_level_entities,
-        spawn_temp_scene,
+        SerializationPlugin, convert_zone_builders, initialize_zone_builder, load_active_level,
+        remove_active_level, remove_level_entities, spawn_temp_scene, zone_creation_input_handler,
     },
     *,
 };
@@ -44,6 +44,19 @@ fn main() {
                     .run_if(state_is(Play))
                     .run_if(not(input_pressed(KeyCode::ShiftLeft))),
                 launch_launching.run_if(input_just_released(MouseButton::Left)),
+            ),
+        )
+        // Silly zone thing
+        .add_systems(
+            Update,
+            (
+                (
+                    zone_creation_input_handler.run_if(input_pressed(KeyCode::ControlLeft)),
+                    initialize_zone_builder.run_if(input_just_pressed(KeyCode::ControlLeft)),
+                    convert_zone_builders.run_if(input_just_released(KeyCode::ControlLeft)),
+                )
+                    .run_if(state_is(Editor)),
+                convert_zone_builders.run_if(state_is(Play)),
             ),
         )
         // Miscellaeneous systems
