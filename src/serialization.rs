@@ -1,6 +1,11 @@
 use avian2d::prelude::ColliderConstructor;
 use bevy::{
-    asset::RenderAssetUsages, prelude::*, reflect::TypeRegistry, render::mesh::PrimitiveTopology,
+    asset::RenderAssetUsages,
+    color::palettes::css::{RED, WHITE},
+    gizmos,
+    prelude::*,
+    reflect::TypeRegistry,
+    render::mesh::PrimitiveTopology,
 };
 use std::{fs::File, path::PathBuf};
 
@@ -39,8 +44,8 @@ type InternalSerializableTypes = (
     SerializableMesh,
     SerializableMeshPrimitives,
     SerilializableMeshMaterial,
-    SerializableZoneBuilder,
     GameSerializable,
+    StartPoint,
 );
 
 type ExternalSerializableTypes = (
@@ -159,14 +164,19 @@ fn serialize_objects(
             .allow_component::<SerializableCollider>()
             .allow_component::<SerializableMesh>()
             .allow_component::<SerilializableMeshMaterial>()
-            .allow_component::<SerializableZoneBuilder>()
             .allow_component::<GameSerializable>()
             // External types
             .allow_component::<Transform>()
             .allow_component::<avian2d::prelude::CollisionLayers>()
             .allow_component::<avian2d::prelude::Mass>()
-            .allow_component::<avian2d::prelude::RigidBody>();
-        let scene = scene_builder.extract_entities(entities.iter()).build();
+            .allow_component::<avian2d::prelude::RigidBody>()
+            // Resources
+            .allow_resource::<StartPoint>();
+
+        let scene = scene_builder
+            .extract_entities(entities.iter())
+            .extract_resources()
+            .build();
 
         // info!(
         //     "Scene: {:?}",
@@ -288,13 +298,18 @@ impl Into<ColliderConstructor> for SerializableZoneBuilder {
     }
 }
 
-#[derive(Component, Default, Clone, Reflect)]
-#[reflect(Component)]
+#[derive(Component, Default, Clone)]
 pub struct SerializableZoneBuilder(pub SerializableZone);
 
 impl SerializableZoneBuilder {
     fn insert_point(&mut self, point: Vec2) {
         self.0.vertices.push(point);
+    }
+
+    fn remove_last(&mut self) {
+        let len = self.0.vertices.len();
+
+        self.0.vertices.remove(len - 1);
     }
 
     fn get_center(&self) -> Vec2 {
@@ -401,13 +416,51 @@ pub fn zone_creation_input_handler(
     keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     cursor_pos: Res<CursorPosition>,
-    mut commands: Commands,
+    mut _commands: Commands,
 ) {
     if let Some(cursor_pos) = **cursor_pos {
         if mouse.just_pressed(MouseButton::Left) {
             zone_builder.insert_point(cursor_pos);
         }
+
+        if keys.just_pressed(KeyCode::Space) {
+            zone_builder.0.vertices.truncate(1);
+        }
+
+        if mouse.just_pressed(MouseButton::Back) {
+            zone_builder.remove_last();
+        }
     }
+}
+
+pub fn zone_creation_outline_gizmos(
+    mut gizmos: Gizmos,
+    zones: Query<&SerializableZoneBuilder>,
+    cursor_pos: Res<CursorPosition>,
+) {
+    zones
+        .iter()
+        .filter(|SerializableZoneBuilder(SerializableZone { vertices, .. })| vertices.len() > 1)
+        .map(|SerializableZoneBuilder(SerializableZone { vertices, .. })| vertices[1..].to_owned())
+        .for_each(|mut vertices| {
+            if let Some(cursor_pos) = **cursor_pos {
+                vertices.push(cursor_pos)
+            }
+
+            vertices.iter().for_each(|vertice| {
+                gizmos.rect_2d(
+                    Isometry2d::from_translation(*vertice),
+                    Vec2::new(5.0, 5.0),
+                    Color::srgb(1.0, 0.0, 0.2),
+                )
+            });
+
+            if vertices.len() > 1 {
+                for i in 0..=vertices.len() - 2 {
+                    gizmos.line_2d(vertices[i], vertices[i + 1], Color::srgb(1.0, 0.0, 0.2))
+                }
+            }
+        });
 }
 
 #[derive(Reflect, Clone)]
@@ -600,4 +653,37 @@ fn initialize_mesh_materials(
                 }
             };
         });
+}
+
+// Instead of storing an option I could just make it either exist or not...
+#[derive(Deref, DerefMut, Reflect, Resource, Debug)]
+#[reflect(Resource)]
+pub struct StartPoint(Option<Vec2>);
+
+impl Default for StartPoint {
+    fn default() -> Self {
+        StartPoint(None)
+    }
+}
+
+pub fn draw_start_point(start_point: Res<StartPoint>, mut gizmos: Gizmos) {
+    if let Some(start_point) = **start_point {
+        let start_point_color = WHITE;
+
+        gizmos.circle_2d(
+            Isometry2d::from_translation(start_point),
+            10.0,
+            start_point_color,
+        );
+        gizmos.line_2d(
+            start_point + Vec2::new(5.0, 0.0),
+            start_point + Vec2::new(-5.0, 0.0),
+            start_point_color,
+        );
+        gizmos.line_2d(
+            start_point + Vec2::new(0.0, 5.0),
+            start_point + Vec2::new(0.0, -5.0),
+            start_point_color,
+        );
+    }
 }

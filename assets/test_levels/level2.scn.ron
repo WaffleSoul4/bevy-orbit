@@ -1,7 +1,9 @@
 (
-  resources: {},
+  resources: {
+    "bevy_orbit::serialization::StartPoint": (Some((-36.5856, 96.76989))),
+  },
   entities: {
-    25769803805: (
+    17179869244: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (2),
@@ -29,47 +31,13 @@
           texture: None,
         )),
         "bevy_transform::components::transform::Transform": (
-          translation: (-86.700005, 141.60004, 0.0),
+          translation: (-77.09996, 48.0, 0.0),
           rotation: (0.0, 0.0, 0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    25769803809: (
-      components: {
-        "avian2d::collision::collider::layers::CollisionLayers": (
-          memberships: (2),
-          filters: (1),
-        ),
-        "bevy_orbit::game::GameTrigger": (),
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
-          color: Srgba((
-            red: 0.1,
-            green: 0.3,
-            blue: 0.7,
-            alpha: 1.0,
-          )),
-          alpha_mode: Opaque,
-          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
-          texture: None,
-        )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-233.10002, 87.00002, 0.0),
-          rotation: (0.0, 0.0, 0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    25769803810: (
+    34359738393: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (2),
@@ -103,7 +71,7 @@
         ),
       },
     ),
-    25769803812: (
+    34359738395: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (1),
@@ -145,7 +113,7 @@
         ),
       },
     ),
-    30064771096: (
+    34359738397: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (2),
@@ -173,13 +141,13 @@
           texture: None,
         )),
         "bevy_transform::components::transform::Transform": (
-          translation: (-77.09996, 48.0, 0.0),
+          translation: (-86.700005, 141.60004, 0.0),
           rotation: (0.0, 0.0, 0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    296352743449: (
+    34359738399: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (1),
@@ -221,7 +189,41 @@
         ),
       },
     ),
-    296352743451: (
+    34359738400: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::game::GameTrigger": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.1,
+            green: 0.3,
+            blue: 0.7,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-233.10002, 87.00002, 0.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    317827579932: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (1),
@@ -263,7 +265,7 @@
         ),
       },
     ),
-    300647710755: (
+    317827579939: (
       components: {
         "bevy_orbit::serialization::GameSerializable": (),
         "bevy_orbit::serialization::SerializableMesh": Zone(

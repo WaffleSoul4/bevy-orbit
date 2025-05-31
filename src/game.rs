@@ -1,11 +1,12 @@
 use std::f32::consts::PI;
 
 use crate::{
-    DynamicObject, GameLayer, Launching, add_observer_on_hook,
+    DynamicObject, GameLayer, GameState, Launching, add_observer_on_hook,
     cursor::CursorPosition,
     gravity::{Gravity, GravityLayers},
     serialization::{
         GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
+        StartPoint,
     },
 };
 use avian2d::prelude::*;
@@ -16,7 +17,7 @@ use bevy::{
 
 // Yep, I'm calling it the launch object
 #[derive(Bundle)]
-struct LaunchObjectBundle {
+pub struct LaunchObjectBundle {
     transform: Transform,
     mesh: SerializableMesh, // I might need this to be serializable
     material: SerilializableMeshMaterial, // Same here
@@ -55,7 +56,7 @@ impl LaunchObjectBundle {
         self
     }
 
-    fn with_position(self, position: Vec2) -> Self {
+    pub fn with_position(self, position: Vec2) -> Self {
         self.with_translation(position.extend(0.0))
     }
 }
@@ -123,6 +124,7 @@ impl DynamicObjectBundle {
     }
 }
 
+// Not using this for now
 pub fn game_input_handler(
     _keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -434,5 +436,19 @@ pub struct DeathEvent {
 impl DeathEvent {
     pub fn new(source: DeathSource) -> Self {
         DeathEvent { source }
+    }
+}
+
+pub fn spawn_launching_object_system(
+    mut commands: Commands,
+    launching: Query<(), With<Launching>>,
+    starting_point: Res<StartPoint>,
+) {
+    if launching.is_empty() {
+        if let Some(start_point) = **starting_point {
+            commands.spawn(LaunchObjectBundle::default().with_position(start_point));
+        } else {
+            warn!("Tried to spawn a launching object while starting point was unset");
+        }
     }
 }

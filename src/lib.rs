@@ -6,7 +6,7 @@ pub mod game;
 pub mod gravity;
 pub mod serialization;
 
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 use avian2d::prelude::*;
 use bevy::{
@@ -16,10 +16,12 @@ use bevy::{
 
 use cursor::CursorPosition;
 use game::{DeathEvent, DeathEventsEnabled, DynamicObjectBundle, LaunchingObjectConfig, Triggered};
-use serialization::GameSerializable;
-
+use serialization::{GameSerializable, StartPoint};
 pub fn setup(mut commands: Commands) {
-    commands.insert_resource(GameState::Play);
+    commands.init_resource::<StartPoint>();
+
+    commands.insert_resource(AppState::Play);
+    commands.insert_resource(GameState::Launching);
 
     // Disable Avian Gravity
     commands.insert_resource(avian2d::prelude::Gravity::ZERO);
@@ -30,7 +32,7 @@ pub struct Launching;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-struct DynamicObject;
+pub struct DynamicObject;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -47,15 +49,23 @@ enum GameLayer {
 struct CameraTrackable; // Oh god the naming is getting worse
 
 #[derive(Resource, PartialEq, Clone)]
-pub enum GameState {
+pub enum AppState {
     Editor,
     Play,
 }
 
-pub fn toggle_gamestate(mut state: ResMut<GameState>) {
+#[derive(Resource, PartialEq, Copy, Clone)]
+pub enum GameState {
+    Paused,
+    Sandbox,
+    Launching,
+    Launched,
+}
+
+pub fn toggle_gamestate(mut state: ResMut<AppState>) {
     *state = match *state {
-        GameState::Editor => GameState::Play,
-        GameState::Play => GameState::Editor,
+        AppState::Editor => AppState::Play,
+        AppState::Play => AppState::Editor,
     }
 }
 
@@ -63,6 +73,7 @@ pub fn launch_launching(
     launching_query: Query<(Entity, &Transform, &LaunchingObjectConfig), With<Launching>>,
     cursor_position: Res<CursorPosition>,
     mut commands: Commands,
+    mut game_state: ResMut<GameState>,
 ) {
     launching_query
         .iter()
@@ -80,6 +91,18 @@ pub fn launch_launching(
                 game::PathTracer::new(launched),
                 Transform::from_translation(Vec3::ZERO),
             ));
+
+            *game_state = match *game_state {
+                GameState::Launching => GameState::Launched,
+                GameState::Paused => {
+                    warn!("Object launched while game paused");
+                    GameState::Paused
+                }
+                _ => {
+                    warn!("Object launched while in the launched state of the game, switching to sandbox");
+                    GameState::Sandbox
+                } // If something is launched while already in the launched state, enter sandbox
+            }
         });
 }
 
@@ -95,15 +118,14 @@ pub fn reset_level(
     remove_query: Query<
         Entity,
         (
-            Or<(
-                (With<LinearVelocity>, Without<GameSerializable>),
-                With<game::PathTracer>,
-            )>,
+            Or<(With<DynamicObject>, With<game::PathTracer>)>,
             Without<DeathEventsEnabled>,
         ),
     >,
     killable_query: Query<Entity, With<DeathEventsEnabled>>,
     mut trigger_query: Query<Entity, With<game::Triggered>>,
+    starting_position: Res<StartPoint>,
+    mut game_state: ResMut<GameState>,
 ) {
     remove_query
         .iter()
@@ -117,9 +139,27 @@ pub fn reset_level(
     trigger_query.iter_mut().for_each(|entity| {
         commands.entity(entity).remove::<Triggered>();
     });
+
+    *game_state = match **starting_position {
+        Some(_) => GameState::Launching,
+        None => GameState::Sandbox,
+    }
 }
 
-pub fn state_is(state: GameState) -> impl Fn(Res<GameState>) -> bool {
+pub fn initialize_object(mut commands: Commands, starting_position: Res<StartPoint>) {
+    info!("Initializing object...");
+
+    if let Some(start_point) = **starting_position {
+        commands.spawn(game::LaunchObjectBundle::default().with_position(start_point));
+    }
+}
+
+pub fn app_state_is(state: AppState) -> impl Fn(Res<AppState>) -> bool {
+    move |state_res: Res<AppState>| *state_res == state
+}
+
+// I know they're the same but it's more verbose
+pub fn game_state_is(state: GameState) -> impl Fn(Res<GameState>) -> bool {
     move |state_res: Res<GameState>| *state_res == state
 }
 
@@ -151,4 +191,12 @@ fn add_observer_on_hook<T: Event, F: IntoObserverSystem<T, B, M> + Clone, B: Bun
             .expect("Failed to find entity from component hook")
             .observe(observer.clone());
     }
+}
+
+pub fn debug_resource<T: Resource + Debug>(res: Res<T>) {
+    eprintln!("{res:?}")
+}
+
+pub fn set_resource<T: Resource + Copy>(val: T) -> impl Fn(ResMut<T>) {
+    move |mut res: ResMut<T>| *res = val
 }

@@ -1,12 +1,12 @@
 use crate::{
-    LevelObject,
+    LevelObject, app_state_is,
     cursor::CursorPosition,
     game::{GameTriggerBundle, KillOnCollision},
     gravity::{Gravity, GravityLayer, GravityLayers},
     serialization::{
         self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
+        StartPoint,
     },
-    state_is,
 };
 use avian2d::prelude::*;
 use bevy::prelude::*;
@@ -84,7 +84,7 @@ impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            editor_input_handler.run_if(state_is(crate::GameState::Editor)),
+            editor_input_handler.run_if(app_state_is(crate::AppState::Editor)),
         );
     }
 }
@@ -93,6 +93,7 @@ pub fn editor_input_handler(
     keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     cursor_position: Res<CursorPosition>,
+    mut starting_position: ResMut<StartPoint>,
     mut commands: Commands,
 ) {
     if let Some(cursor_position) = **cursor_position {
@@ -104,6 +105,10 @@ pub fn editor_input_handler(
                     LevelObjectBundle::from_circle(Circle::new(10.0))
                         .with_translation_2d(cursor_position),
                 );
+            }
+
+            if mouse.just_pressed(MouseButton::Middle) {
+                **starting_position = Some(cursor_position)
             }
 
             if keys.just_pressed(KeyCode::KeyZ) {
