@@ -1,44 +1,9 @@
-use avian2d::prelude::LinearVelocity;
 use bevy::prelude::*;
-use bevy_egui::{
-    EguiContexts, EguiPlugin,
-    egui::{self},
-};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_egui::egui;
 
-pub struct DebugPlugin;
-
-impl Default for DebugPlugin {
-    fn default() -> Self {
-        DebugPlugin
-    }
-}
-
-impl Plugin for DebugPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin {
-            enable_multipass_for_primary_context: false,
-        })
-        .add_plugins(
-            WorldInspectorPlugin::new()
-                .run_if(|settings: Res<DebugSettings>| settings.show_inspector),
-        )
-        .insert_resource(DebugSettings::default())
-        .add_systems(
-            Update,
-            (
-                draw_grid.run_if(|settings: Res<DebugSettings>| settings.grid_settings.show_grid),
-                draw_velocity_arrows
-                    .run_if(|settings: Res<DebugSettings>| settings.show_velocity_arrows),
-                debug_ui.run_if(|settings: Res<DebugSettings>| settings.show_ui),
-            ),
-        );
-    }
-}
-
-struct GridSettings {
+pub struct GridSettings {
     // Whether to show the grid or not
-    show_grid: bool,
+    pub show_grid: bool,
     // The size of each cell
     cell_size: Vec2,
     // How many cells to draw on x and y axis
@@ -64,70 +29,7 @@ impl Default for GridSettings {
     }
 }
 
-#[derive(Resource)]
-pub struct DebugSettings {
-    pub show_inspector: bool,
-    pub show_ui: bool,
-    show_velocity_arrows: bool,
-    grid_settings: GridSettings,
-}
-
-impl Default for DebugSettings {
-    fn default() -> Self {
-        DebugSettings {
-            show_inspector: false,
-            show_ui: false,
-            show_velocity_arrows: false,
-            grid_settings: GridSettings::default(),
-        }
-    }
-}
-
-impl DebugSettings {
-    pub fn toggle_ui(&mut self) {
-        self.show_ui = !self.show_ui;
-    }
-
-    pub fn toggle_inspector(&mut self) {
-        self.show_inspector = !self.show_inspector;
-    }
-}
-
-pub fn toggle_debug_ui(mut settings: ResMut<DebugSettings>) {
-    settings.toggle_ui();
-}
-
-pub fn debug_ui(
-    mut contexts: EguiContexts,
-    debug_settings: ResMut<DebugSettings>,
-    camera_query: Single<
-        (&mut Transform, &mut crate::camera::CameraVelocity),
-        With<crate::camera::GameCamera>,
-    >,
-) {
-    let mut debug_settings = debug_settings;
-
-    let mut camera = camera_query.into_inner();
-
-    egui::Window::new("Debug").show(contexts.ctx_mut(), |ui| {
-        ui.button("Toggle inspector")
-            .clicked()
-            .then(|| debug_settings.toggle_inspector());
-        ui.checkbox(&mut debug_settings.grid_settings.show_grid, "Show grid");
-        ui.checkbox(
-            &mut debug_settings.show_velocity_arrows,
-            "Show velocity arrows",
-        );
-        ui.collapsing("Grid Settings", |ui| {
-            grid_settings_ui(ui, &mut debug_settings.grid_settings);
-        });
-        ui.collapsing("Camera Settings", |ui| {
-            camera_settings_ui(ui, &mut *camera.0, &mut *camera.1);
-        });
-    });
-}
-
-fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
+pub fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
     let mut lower_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.lower_color);
     let mut upper_egui_hsva = bevy_hsva_to_egui_hsva(grid_settings.upper_color);
 
@@ -163,27 +65,6 @@ fn grid_settings_ui(ui: &mut egui::Ui, grid_settings: &mut GridSettings) {
     grid_settings.upper_color = egui_hsva_to_bevy_hsva(upper_egui_hsva);
 }
 
-fn camera_settings_ui(
-    ui: &mut egui::Ui,
-    camera_transform: &mut Transform,
-    camera_velocity: &mut crate::camera::CameraVelocity,
-) {
-    ui.label("Position");
-    ui.horizontal(|ui| {
-        ui.label("x");
-        ui.add(egui::DragValue::new(&mut camera_transform.translation.x));
-        ui.label("y");
-        ui.add(egui::DragValue::new(&mut camera_transform.translation.y));
-    });
-    ui.label("Velocity");
-    ui.horizontal(|ui| {
-        ui.label("x");
-        ui.add(egui::DragValue::new(&mut camera_velocity.x));
-        ui.label("y");
-        ui.add(egui::DragValue::new(&mut camera_velocity.y));
-    });
-}
-
 fn egui_hsva_to_bevy_hsva(hsva: egui::epaint::Hsva) -> Hsva {
     Hsva::new(hsva.h * 360.0, hsva.s, hsva.v, hsva.a)
 }
@@ -192,37 +73,9 @@ fn bevy_hsva_to_egui_hsva(hsva: Hsva) -> egui::epaint::Hsva {
     egui::epaint::Hsva::new(hsva.hue / 360.0, hsva.saturation, hsva.value, hsva.alpha)
 }
 
-pub fn draw_velocity_arrows(
-    mut gizmos: Gizmos,
-    mouse_pos: Res<crate::cursor::CursorPosition>,
-    dynamic_object_query: Query<(&LinearVelocity, &Transform), With<Mesh2d>>,
-    selected_object_query: Query<&Transform, With<crate::Launching>>,
-) {
-    dynamic_object_query
-        .iter()
-        .for_each(|(velocity, transform)| {
-            gizmos.arrow_2d(
-                transform.translation.xy(),
-                transform.translation.xy() + velocity.0.xy() / 6.0,
-                Color::srgb(0.1, 0.4, 0.6),
-            );
-        });
-
-    // Draw arrows for objects that are currently [Selected]
-    selected_object_query.iter().for_each(|transform| {
-        let dif = transform.translation.xy() - mouse_pos.unwrap_or(transform.translation.xy());
-
-        gizmos.arrow_2d(
-            transform.translation.xy(),
-            transform.translation.xy() + dif / 6.0,
-            Color::srgb(0.1, 0.4, 0.6),
-        );
-    });
-}
-
 pub fn draw_grid(
     mut gizmos: Gizmos,
-    debug_settings: Res<DebugSettings>,
+    debug_settings: Res<super::DebugSettings>,
     camera_query: Single<(&Transform, &Projection), With<crate::camera::GameCamera>>,
 ) {
     let (camera_transform, projection) = camera_query.into_inner();

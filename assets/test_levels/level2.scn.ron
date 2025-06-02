@@ -1,25 +1,20 @@
 (
   resources: {
-    "bevy_orbit::serialization::StartPoint": (Some((-36.5856, 96.76989))),
+    "bevy_orbit::serialization::StartPoint": (Some((-343.63672, 44.62886))),
   },
   entities: {
-    17179869244: (
+    4294967327: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (2),
           filters: (1),
         ),
-        "bevy_orbit::game::GameTrigger": (),
+        "bevy_orbit::game::trigger::GameTrigger": (),
         "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
           radius: 10.0,
         )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
           color: Srgba((
             red: 0.1,
             green: 0.3,
@@ -30,30 +25,30 @@
           uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
           texture: None,
         )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
         "bevy_transform::components::transform::Transform": (
-          translation: (-77.09996, 48.0, 0.0),
+          translation: (-73.792984, 67.589874, 0.0),
           rotation: (0.0, 0.0, 0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    34359738393: (
+    4294967329: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (2),
           filters: (1),
         ),
-        "bevy_orbit::game::GameTrigger": (),
+        "bevy_orbit::game::trigger::GameTrigger": (),
         "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
           radius: 10.0,
         )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
           color: Srgba((
             red: 0.1,
             green: 0.3,
@@ -64,240 +59,390 @@
           uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
           texture: None,
         )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
         "bevy_transform::components::transform::Transform": (
-          translation: (-125.69998, 90.60002, 0.0),
+          translation: (-57.773434, -36.238274, 0.0),
           rotation: (0.0, 0.0, 0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },
     ),
-    34359738395: (
+    4294967331: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::game::trigger::GameTrigger": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.1,
+            green: 0.3,
+            blue: 0.7,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-291.1289, -43.820324, 0.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967333: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::game::trigger::GameTrigger": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.1,
+            green: 0.3,
+            blue: 0.7,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-303.56638, 64.30084, 0.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967335: (
       components: {
         "avian2d::collision::collider::layers::CollisionLayers": (
           memberships: (1),
           filters: (4294967295),
         ),
-        "avian2d::dynamics::rigid_body::RigidBody": Static,
-        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::LevelObject": (),
-        "bevy_orbit::game::KillOnCollision": (),
-        "bevy_orbit::gravity::Gravity": (),
-        "bevy_orbit::gravity::GravityLayers": (
-          memberships: (2),
-          filters: (3),
-        ),
+        "bevy_orbit::game::death::KillOnCollision": (),
         "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Trimesh(
+          vertices: [
+            (0.0, 0.0),
+            (-31.103516, 0.93945694),
+            (31.103516, -0.93945503),
+          ],
+          indices: [
+            (0, 1, 2),
+            (0, 2, 1),
+          ],
         )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
-          color: Oklaba((
-            lightness: 1.0,
-            a: 0.7,
-            b: 0.3,
-            alpha: 1.0,
-          )),
-          alpha_mode: Opaque,
-          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
-          texture: None,
-        )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-287.70004, 86.40001, 0.0),
-          rotation: (0.0, 0.0, -0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    34359738397: (
-      components: {
-        "avian2d::collision::collider::layers::CollisionLayers": (
-          memberships: (2),
-          filters: (1),
-        ),
-        "bevy_orbit::game::GameTrigger": (),
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
           color: Srgba((
-            red: 0.1,
-            green: 0.3,
-            blue: 0.7,
-            alpha: 1.0,
+            red: 0.8,
+            green: 0.1,
+            blue: 0.3,
+            alpha: 0.3,
           )),
-          alpha_mode: Opaque,
+          alpha_mode: Blend,
           uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
           texture: None,
         )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-86.700005, 141.60004, 0.0),
-          rotation: (0.0, 0.0, 0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    34359738399: (
-      components: {
-        "avian2d::collision::collider::layers::CollisionLayers": (
-          memberships: (1),
-          filters: (4294967295),
-        ),
-        "avian2d::dynamics::rigid_body::RigidBody": Static,
-        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::LevelObject": (),
-        "bevy_orbit::game::KillOnCollision": (),
-        "bevy_orbit::gravity::Gravity": (),
-        "bevy_orbit::gravity::GravityLayers": (
-          memberships: (2),
-          filters: (3),
-        ),
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
-          color: Oklaba((
-            lightness: 1.0,
-            a: 0.7,
-            b: 0.3,
-            alpha: 1.0,
-          )),
-          alpha_mode: Opaque,
-          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
-          texture: None,
-        )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-80.7, 94.20002, 0.0),
-          rotation: (0.0, 0.0, -0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    34359738400: (
-      components: {
-        "avian2d::collision::collider::layers::CollisionLayers": (
-          memberships: (2),
-          filters: (1),
-        ),
-        "bevy_orbit::game::GameTrigger": (),
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
-          color: Srgba((
-            red: 0.1,
-            green: 0.3,
-            blue: 0.7,
-            alpha: 1.0,
-          )),
-          alpha_mode: Opaque,
-          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
-          texture: None,
-        )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-233.10002, 87.00002, 0.0),
-          rotation: (0.0, 0.0, 0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    317827579932: (
-      components: {
-        "avian2d::collision::collider::layers::CollisionLayers": (
-          memberships: (1),
-          filters: (4294967295),
-        ),
-        "avian2d::dynamics::rigid_body::RigidBody": Static,
-        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
-        "bevy_orbit::LevelObject": (),
-        "bevy_orbit::game::KillOnCollision": (),
-        "bevy_orbit::gravity::Gravity": (),
-        "bevy_orbit::gravity::GravityLayers": (
-          memberships: (2),
-          filters: (3),
-        ),
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableCollider": (Circle(
-          radius: 10.0,
-        )),
-        "bevy_orbit::serialization::SerializableMesh": Primitive(
-          shape: Circle((
-            radius: 10.0,
-          )),
-        ),
-        "bevy_orbit::serialization::SerilializableMeshMaterial": Color((
-          color: Oklaba((
-            lightness: 1.0,
-            a: 0.7,
-            b: 0.3,
-            alpha: 1.0,
-          )),
-          alpha_mode: Opaque,
-          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
-          texture: None,
-        )),
-        "bevy_transform::components::transform::Transform": (
-          translation: (-183.29997, 86.40001, 0.0),
-          rotation: (0.0, 0.0, -0.0, 1.0),
-          scale: (1.0, 1.0, 1.0),
-        ),
-      },
-    ),
-    317827579939: (
-      components: {
-        "bevy_orbit::serialization::GameSerializable": (),
-        "bevy_orbit::serialization::SerializableMesh": Zone(
+        "bevy_orbit::serialization::meshes::SerializableMesh": Zone(
           zone: (
             vertices: [
               (0.0, 0.0),
-              (-376.90002, -182.40001),
-              (-259.90002, -82.80001),
-              (-132.09995, -224.40001),
+              (-31.103516, 0.93945694),
+              (31.103516, -0.93945503),
             ],
             indices: [
               0,
-              0,
-              1,
-              0,
               1,
               2,
               0,
               2,
-              3,
-              0,
-              3,
-              4,
-              0,
-              12,
               1,
             ],
           ),
         ),
         "bevy_transform::components::transform::Transform": (
-          translation: (0.0, 0.0, 0.0),
+          translation: (-353.92383, 18.947319, -1.0),
           rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    4294967336: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (1),
+          filters: (4294967295),
+        ),
+        "bevy_orbit::game::death::KillOnCollision": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Trimesh(
+          vertices: [
+            (0.0, 0.0),
+            (-29.529938, 8.645861),
+            (32.145874, 8.403625),
+            (-2.6159058, -17.049484),
+          ],
+          indices: [
+            (0, 1, 2),
+            (0, 2, 3),
+            (0, 3, 1),
+          ],
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.8,
+            green: 0.1,
+            blue: 0.3,
+            alpha: 0.3,
+          )),
+          alpha_mode: Blend,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Zone(
+          zone: (
+            vertices: [
+              (0.0, 0.0),
+              (-29.529938, 8.645861),
+              (32.145874, 8.403625),
+              (-2.6159058, -17.049484),
+            ],
+            indices: [
+              0,
+              1,
+              2,
+              0,
+              2,
+              3,
+              0,
+              3,
+              1,
+            ],
+          ),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-346.91928, 7.487011, -1.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    8589934622: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::game::trigger::GameTrigger": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.1,
+            green: 0.3,
+            blue: 0.7,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-119.859375, 12.562563, 0.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    12884901914: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (1),
+          filters: (4294967295),
+        ),
+        "avian2d::dynamics::rigid_body::RigidBody": Static,
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::game::death::KillOnCollision": (),
+        "bevy_orbit::game::gravity::Gravity": (),
+        "bevy_orbit::game::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (3),
+        ),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::LevelObject": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Oklaba((
+            lightness: 1.0,
+            a: 0.7,
+            b: 0.3,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-296.3711, 11.148436, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    12884901916: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (2),
+          filters: (1),
+        ),
+        "bevy_orbit::game::trigger::GameTrigger": (),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Srgba((
+            red: 0.1,
+            green: 0.3,
+            blue: 0.7,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-229.09764, 11.01564, 0.0),
+          rotation: (0.0, 0.0, 0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    12884901917: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (1),
+          filters: (4294967295),
+        ),
+        "avian2d::dynamics::rigid_body::RigidBody": Static,
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::game::death::KillOnCollision": (),
+        "bevy_orbit::game::gravity::Gravity": (),
+        "bevy_orbit::game::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (3),
+        ),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::LevelObject": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Oklaba((
+            lightness: 1.0,
+            a: 0.7,
+            b: 0.3,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-172.75002, 11.578103, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
+          scale: (1.0, 1.0, 1.0),
+        ),
+      },
+    ),
+    17179869208: (
+      components: {
+        "avian2d::collision::collider::layers::CollisionLayers": (
+          memberships: (1),
+          filters: (4294967295),
+        ),
+        "avian2d::dynamics::rigid_body::RigidBody": Static,
+        "avian2d::dynamics::rigid_body::mass_properties::components::Mass": (5.0),
+        "bevy_orbit::game::death::KillOnCollision": (),
+        "bevy_orbit::game::gravity::Gravity": (),
+        "bevy_orbit::game::gravity::GravityLayers": (
+          memberships: (2),
+          filters: (3),
+        ),
+        "bevy_orbit::serialization::GameSerializable": (),
+        "bevy_orbit::serialization::LevelObject": (),
+        "bevy_orbit::serialization::colliders::SerializableCollider": (Circle(
+          radius: 10.0,
+        )),
+        "bevy_orbit::serialization::materials::SerilializableMeshMaterial": Color((
+          color: Oklaba((
+            lightness: 1.0,
+            a: 0.7,
+            b: 0.3,
+            alpha: 1.0,
+          )),
+          alpha_mode: Opaque,
+          uv_transform: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0),
+          texture: None,
+        )),
+        "bevy_orbit::serialization::meshes::SerializableMesh": Primitive(
+          shape: Circle((
+            radius: 10.0,
+          )),
+        ),
+        "bevy_transform::components::transform::Transform": (
+          translation: (-65.527336, 14.374992, 0.0),
+          rotation: (0.0, 0.0, -0.0, 1.0),
           scale: (1.0, 1.0, 1.0),
         ),
       },

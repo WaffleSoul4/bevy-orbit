@@ -1,18 +1,19 @@
-use crate::{
-    LevelObject, app_state_is,
-    cursor::CursorPosition,
-    game::{GameTriggerBundle, KillOnCollision},
-    gravity::{Gravity, GravityLayer, GravityLayers},
-    serialization::{
-        self, GameSerializable, SerializableCollider, SerializableMesh, SerilializableMeshMaterial,
-        StartPoint,
-    },
-};
+mod ui;
+
 use avian2d::prelude::*;
 use bevy::prelude::*;
-use bevy_egui::{
-    EguiContexts,
-    egui::{self},
+use bevy_egui::EguiPlugin;
+
+use crate::{
+    game::{
+        death::KillOnCollision,
+        gravity::{Gravity, GravityLayer, GravityLayers},
+    },
+    helper::app_state_is,
+    serialization::{
+        GameSerializable, LevelObject, colliders::SerializableCollider,
+        materials::SerilializableMeshMaterial, meshes::SerializableMesh,
+    },
 };
 
 #[derive(Bundle)]
@@ -45,11 +46,12 @@ impl LevelObjectBundle {
         self
     }
 
-    fn with_translation_2d(self, translation: Vec2) -> Self {
+    pub fn with_position(self, translation: Vec2) -> Self {
         self.with_translation(translation.extend(0.0))
     }
 
-    fn with_velocity(mut self, velocity: Vec2) -> Self {
+    #[allow(dead_code)]
+    pub fn with_velocity(mut self, velocity: Vec2) -> Self {
         self.velocity = LinearVelocity(velocity);
         self.rigid_body = RigidBody::Dynamic;
         self
@@ -82,9 +84,15 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
+        if !app.is_plugin_added::<EguiPlugin>() {
+            app.add_plugins(EguiPlugin {
+                enable_multipass_for_primary_context: false,
+            });
+        }
+
         app.add_systems(
             Update,
-            editor_input_handler.run_if(app_state_is(crate::AppState::Editor)),
+            (editor_input_handler, ui::side_menu).run_if(app_state_is(crate::AppState::Editor)),
         );
     }
 }
@@ -92,8 +100,8 @@ impl Plugin for EditorPlugin {
 pub fn editor_input_handler(
     keys: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
-    cursor_position: Res<CursorPosition>,
-    mut starting_position: ResMut<StartPoint>,
+    cursor_position: Res<crate::cursor::CursorPosition>,
+    mut starting_position: ResMut<crate::StartPoint>,
     mut commands: Commands,
 ) {
     if let Some(cursor_position) = **cursor_position {
@@ -103,7 +111,7 @@ pub fn editor_input_handler(
             if mouse.just_pressed(MouseButton::Right) {
                 commands.spawn(
                     LevelObjectBundle::from_circle(Circle::new(10.0))
-                        .with_translation_2d(cursor_position),
+                        .with_position(cursor_position),
                 );
             }
 
@@ -113,63 +121,11 @@ pub fn editor_input_handler(
 
             if keys.just_pressed(KeyCode::KeyZ) {
                 // I'll add a bundle for this later
-                commands.spawn(GameTriggerBundle::default().with_position(cursor_position));
+                commands.spawn(
+                    crate::game::trigger::GameTriggerBundle::default()
+                        .with_position(cursor_position),
+                );
             }
         }
     }
-}
-
-pub fn side_menu(
-    mut contexts: EguiContexts,
-    window: Single<&Window>,
-    mut camera: Single<&mut Camera, With<crate::camera::GameCamera>>,
-    mut save_events: EventWriter<serialization::SaveEvent>,
-    mut serialization_data: ResMut<serialization::LevelSerializationData>,
-) {
-    // It makes the code look so much better
-    use std::ops::Mul;
-
-    let contexts = contexts.ctx_mut();
-
-    let ui_width = egui::SidePanel::left("Editor Panel")
-        .resizable(true)
-        .show(contexts, |ui| {
-            let mut path_buffer = serialization_data.path.display().to_string();
-
-            ui.text_edit_singleline(&mut path_buffer);
-            ui.horizontal(|ui| {
-                if ui.button("Save level").clicked() {
-                    save_events.write(serialization::SaveEvent::new(
-                        serialization_data.path.clone(),
-                    ));
-                }
-
-                if ui.button("Load level").clicked() {
-                    warn!("Nothing here yet!");
-                }
-            });
-
-            ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
-
-            serialization_data.path = path_buffer.into();
-        })
-        .response
-        .rect
-        .width()
-        .mul(window.scale_factor())
-        .round() as u32;
-
-    // Spent a long time here
-    // I pulled this ui code from the examples, and just expected
-    // it to work. It does work... sort of. The rect seems to be provided
-    // in logical pixels, not physical pixels.
-
-    // Edit: I just found the part in the code where they multiply by
-    // logical pixels, so I'm going to learn how to read properly 3:
-
-    camera.viewport = Some(bevy::render::camera::Viewport {
-        physical_position: UVec2::new(ui_width, 0),
-        physical_size: UVec2::new(window.physical_width() - ui_width, window.physical_height()),
-        ..default()
-    });
 }
